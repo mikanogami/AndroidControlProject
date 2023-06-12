@@ -1,0 +1,27 @@
+{
+  "buildFiles": [
+    "/Users/mikanogami/AndroidControl/app/src/main/cpp/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/mikanogami/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/mikanogami/AndroidControl/app/.cxx/RelWithDebInfo/5t3m3u1r/x86",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/mikanogami/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/mikanogami/AndroidControl/app/.cxx/RelWithDebInfo/5t3m3u1r/x86",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "AndroidControl::@6890427a1f51a3e7e1df": {
+      "artifactName": "AndroidControl",
+      "abi": "x86",
+      "output": "/Users/mikanogami/AndroidControl/app/build/intermediates/cxx/RelWithDebInfo/5t3m3u1r/obj/x86/libAndroidControl.so",
+      "runtimeFiles": []
+    }
+  }
+}

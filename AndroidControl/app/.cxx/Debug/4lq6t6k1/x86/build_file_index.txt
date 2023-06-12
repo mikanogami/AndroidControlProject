@@ -1,0 +1,1 @@
+/Users/mikanogami/GitHub/AndroidControlProject/AndroidControl/app/src/main/cpp/CMakeLists.txt
