@@ -12,6 +12,7 @@ import android.os.Build;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.text.format.Formatter;
+import android.util.Log;
 import android.view.WindowManager;
 
 import java.net.MalformedURLException;
@@ -20,7 +21,8 @@ import java.net.URL;
 public class UtilsPermissions {
     public static boolean isAccessibilityPermissionGranted(Context context) {
         int accessibilityEnabled = 0;
-        final String service = context.getPackageName() + "/com.hmdm.control.GestureDispatchService";
+        final String service = context.getPackageName() + "/com.example.androidcontrol.service.ControlService";
+        Log.d("isAccessibilityPermissionGranted", service);
 
         try {
             accessibilityEnabled = Settings.Secure.getInt(
@@ -40,6 +42,7 @@ public class UtilsPermissions {
                 splitter.setString(settingValue);
                 while (splitter.hasNext()) {
                     String accessibilityService = splitter.next();
+                    Log.d("accessibilityService", accessibilityService);
                     if (accessibilityService.equalsIgnoreCase(service)) {
                         return true;
                     }

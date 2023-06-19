@@ -31,7 +31,6 @@ public class MainActivity extends AppCompatActivity {
         VIDEO_PIXELS_HEIGHT = displayMetrics.heightPixels;
         VIDEO_PIXELS_WIDTH = displayMetrics.widthPixels;
 
-        /*
         binding.follower.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -39,8 +38,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
-         */
 
         binding.expert.setOnClickListener(new View.OnClickListener() {
             @Override

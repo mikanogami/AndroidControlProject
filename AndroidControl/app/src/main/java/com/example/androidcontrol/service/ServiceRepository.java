@@ -1,7 +1,11 @@
 package com.example.androidcontrol.service;
 
+import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_RUNNING;
+import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_WAITING;
 import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
-import static com.example.androidcontrol.utils.MyConstants.START_SIGNAL;
+import static com.example.androidcontrol.utils.MyConstants.PEER_CONNECTED;
+import static com.example.androidcontrol.utils.MyConstants.PEER_DISCONNECTED;
+import static com.example.androidcontrol.utils.MyConstants.PEER_UNAVAILABLE;
 
 import android.content.Context;
 import android.content.Intent;
@@ -21,14 +25,17 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     private static final String TAG = "ServiceRepository";
     private static final String IceSeperatorChar = "|";
     public VideoRenderListener videoRenderListener;
+    public PeerConnectionListener peerConnectionListener;
     Context context;
     String clientKey;
-    private SocketClient socketClient;
+    protected SocketClient socketClient;
     public RTCClient rtcClient;
+    public boolean isPaused;
 
     public ServiceRepository(Context context, String clientKey) {
         this.context = context;
         this.clientKey = clientKey;
+        isPaused = false;
         socketClient = new SocketClient(clientKey);
         rtcClient = new RTCClient(context);
 
@@ -48,9 +55,13 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     }
 
     public void start() {
+        socketClient.connectToSignallingServer();
+        //initPeerConnection();
+    }
+
+    public void initPeerConnection() {
         rtcClient.initializePeerConnectionFactory();
         rtcClient.initializePeerConnections();
-        socketClient.connectToSignallingServer();
         if (clientKey.equals(FOL_CLIENT_KEY)) {
             rtcClient.createVideoTrackFromCameraAndShowIt();
             rtcClient.startStreamingVideo();
@@ -60,10 +71,21 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     @Override
     public void handleOnNewMessage(String message) throws JSONException {
-        if (message.equals(START_SIGNAL)) {
+        if (message.equals(PEER_CONNECTED)) {
+            Log.d("peer_status", "connected");
             socketClient.enableDoEncrypt();
+            initPeerConnection();
             handleStartSignal();
+            peerConnectionListener.updateAppState(SERVICE_RUNNING);
             return;
+        } else if (message.equals(PEER_DISCONNECTED)) {
+            Log.d("peer_status", "disconnected");
+            socketClient.disableDoEncrypt();
+            peerConnectionListener.updateAppState(SERVICE_WAITING);
+            return;
+        } else if (message.equals(PEER_UNAVAILABLE)) {
+            Log.d("peer_status", "unavailable");
+            peerConnectionListener.updateAppState(SERVICE_WAITING);
         } else {
             JSONObject msgJson = new JSONObject(message);
             int messageType = msgJson.getInt("MessageType");
@@ -129,12 +151,15 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     @Override
     public void renderControlEvent(byte[] eventBytes) {
 
-        Intent intent = new Intent(context, ControlService.class);
-        intent.putExtra("event", eventBytes);
-        Log.d(TAG, String.valueOf(Utils.bytesToFloat(eventBytes)) + " "
-            + String.valueOf(Utils.bytesToFloat(Arrays.copyOfRange(eventBytes, 4, 8))));
+        if (!isPaused) {
+            Intent intent = new Intent(context, ControlService.class);
+            intent.putExtra("event", eventBytes);
+            Log.d(TAG, String.valueOf(Utils.bytesToFloat(eventBytes)) + " "
+                    + String.valueOf(Utils.bytesToFloat(Arrays.copyOfRange(eventBytes, 4, 8))));
 
-        context.startService(intent);
+
+            context.startService(intent);
+        }
     }
 
     public void sendToSocket(int type, String content) {
@@ -169,4 +194,9 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         void renderLocalVideoTrack(VideoTrack vTrack);
         void renderRemoteVideoTrack(VideoTrack vTrack);
     }
+
+    public interface PeerConnectionListener {
+        public void updateAppState(Integer integer);
+    }
+
 }

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation"
+    app:startDestination="@id/main_fragment">
+
+    <fragment
+        android:id="@+id/main_fragment"
+        android:name="com.example.androidcontrol.ui.MainFragment"
+        android:label="@string/main_page_title"
+        tools:layout="@layout/fragment_main" >
+        <action
+            android:id="@+id/open_settings"
+            app:destination="@+id/settings" />
+        <action
+            android:id="@+id/open_instructions"
+            app:restoreState="true"
+            app:destination="@+id/fragment_instructions" />
+    </fragment>
+
+
+    <fragment
+        android:id="@+id/settings"
+        android:name="com.example.androidcontrol.ui.SettingsFragment"
+        android:label="@string/settings_page_title"
+        tools:layout="@xml/settings" >
+    </fragment>
+
+    <fragment
+        android:id="@+id/fragment_instructions"
+        android:name="com.example.androidcontrol.ui.InstructionsFragment"
+        android:label="@string/instructions_page_title"
+        tools:layout="@layout/fragment_instructions" >
+
+    </fragment>
+
+</navigation>

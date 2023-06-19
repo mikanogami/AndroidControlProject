@@ -28,9 +28,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name="com.example.androidcontrol.ui.MainActivity"
+            android:name="com.example.androidcontrol.MainActivity"
             android:label="@string/main_activity"
-            android:theme="@style/AppTheme.NoActionBar"
+            android:theme="@style/AppTheme"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -42,13 +42,13 @@
             android:name="com.example.androidcontrol.service.FollowerService"
             android:label="FollowerService"
             android:foregroundServiceType="mediaProjection"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/AppTheme">
         </service>
         <service
             android:name="com.example.androidcontrol.service.ControlService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:label="ControlService"
-            android:theme="@style/AppTheme.NoActionBar"
+            android:theme="@style/AppTheme"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -57,16 +57,6 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-        <activity
-            android:name="com.example.androidcontrol.ui.ExpertActivity"
-            android:label="@string/expert_activity"
-            android:theme="@style/AppTheme.NoActionBar">
-        </activity>
-        <activity
-            android:name="com.example.androidcontrol.ui.FollowerActivity"
-            android:label="FollowerActivity"
-            android:theme="@style/AppTheme.NoActionBar">
-        </activity>
     </application>
 
 </manifest>

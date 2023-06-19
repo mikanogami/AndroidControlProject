@@ -1,7 +1,8 @@
 package com.example.androidcontrol.service;
 
 import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
-import static com.example.androidcontrol.utils.MyConstants.START_SIGNAL;
+import static com.example.androidcontrol.utils.MyConstants.PEER_CONNECTED;
+import static com.example.androidcontrol.utils.MyConstants.PEER_DISCONNECTED;
 
 import android.content.Context;
 import android.content.Intent;
@@ -48,21 +49,24 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     }
 
     public void start() {
+        socketClient.connectToSignallingServer();
+        //initPeerConnections();
+    }
+
+    public void initPeerConnections() {
         rtcClient.initializePeerConnectionFactory();
         rtcClient.initializePeerConnections();
-        socketClient.connectToSignallingServer();
-        if (clientKey.equals(FOL_CLIENT_KEY)) {
-            rtcClient.createVideoTrackFromCameraAndShowIt();
-            rtcClient.startStreamingVideo();
-            rtcClient.createControlDataChannel();
-        }
     }
 
     @Override
     public void handleOnNewMessage(String message) throws JSONException {
-        if (message.equals(START_SIGNAL)) {
+        if (message.equals(PEER_CONNECTED)) {
             socketClient.enableDoEncrypt();
+            initPeerConnections();
             handleStartSignal();
+            return;
+        } else if (message.equals(PEER_DISCONNECTED)) {
+            socketClient.disableDoEncrypt();
             return;
         } else {
             JSONObject msgJson = new JSONObject(message);

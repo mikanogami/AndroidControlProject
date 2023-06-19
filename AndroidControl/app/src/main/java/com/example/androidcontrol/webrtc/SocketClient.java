@@ -46,7 +46,7 @@ public class SocketClient {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
                 Log.d(TAG, "connectToSignallingServer: on open");
-                websocket.send(AUTH_TOKEN + clientKey);
+                checkIsPeerConnected();
             }
 
             @Override
@@ -100,6 +100,9 @@ public class SocketClient {
         return String.valueOf(msgChar);
     }
 
+    public void checkIsPeerConnected() {
+        websocket.send(AUTH_TOKEN + clientKey);
+    }
 
     public void sendMessage(String message) {
         String messageToSend;
@@ -130,6 +133,8 @@ public class SocketClient {
             throw new RuntimeException(e);
         }
     }
+
+
 
     public interface SocketListener {
         void handleOnNewMessage(String message) throws JSONException;

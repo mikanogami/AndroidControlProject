@@ -1,5 +1,9 @@
 <resources>
-    <string name="app_name">AndroidControl</string>
+    <string name="app_name">Android Screen Control</string>
+    <string name="main_page_title">@string/app_name</string>
+    <string name="settings_page_title">Settings</string>
+    <string name="instructions_page_title">Instructions</string>
+
     <string name="start_follower">Follower</string>
     <string name="start_expert">Expert</string>
 

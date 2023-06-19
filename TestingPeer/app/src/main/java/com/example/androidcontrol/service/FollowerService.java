@@ -80,8 +80,6 @@ public class FollowerService extends Service {
                     .build();
         }
 
-
-
         startForeground(1, notification);
 
 

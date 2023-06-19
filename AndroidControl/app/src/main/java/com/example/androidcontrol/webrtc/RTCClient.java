@@ -44,9 +44,6 @@ public class RTCClient {
 
     public RTCClient.RTCListener rtcListener;
     MediaConstraints audioConstraints;
-    MediaConstraints videoConstraints;
-    MediaConstraints sdpConstraints;
-    VideoSource videoSource;
     AudioSource audioSource;
     AudioTrack localAudioTrack;
     PeerConnection peerConnection;
@@ -163,13 +160,14 @@ public class RTCClient {
 
 
 
+    public SurfaceTextureHelper mSurfaceTextureHelper;
 
     public void createVideoTrackFromCameraAndShowIt() {
         audioConstraints = new MediaConstraints();
         VideoCapturer videoCapturer = createScreenCapturer();
         VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
-        SurfaceTextureHelper mSurfaceTextureHelper = SurfaceTextureHelper.create(
-                Thread.currentThread().getName(), rootEglBase.getEglBaseContext());
+        mSurfaceTextureHelper = SurfaceTextureHelper.create(
+                Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
         videoCapturer.initialize(mSurfaceTextureHelper, context,
                 videoSource.getCapturerObserver());
 
