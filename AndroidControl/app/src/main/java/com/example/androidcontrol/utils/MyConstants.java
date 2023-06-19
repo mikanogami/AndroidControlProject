@@ -18,7 +18,7 @@ public abstract class MyConstants {
     public static int VIDEO_PIXELS_HEIGHT;
     public static int DISPLAY_SURFACE_WIDTH;
     public static int DISPLAY_SURFACE_HEIGHT;
-    public static final int FPS = 20;
+    public static final int FPS = 30;
 
     public static final String NOTIF_CHANNEL_ID = "ForegroundServiceChannel";
     public static final String M_PROJ_INTENT = "mediaProjectionIntent";

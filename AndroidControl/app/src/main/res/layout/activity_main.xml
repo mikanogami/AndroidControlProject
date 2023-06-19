@@ -5,9 +5,31 @@
     android:id="@+id/view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true" >
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/app_state_button"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_gravity="center"
+        android:backgroundTint="@color/colorPrimary"
+        android:clickable="true"
+        android:foreground="@drawable/ic_appstate_foreground"
+        app:layout_anchor="@+id/linearLayout"
+        app:layout_anchorGravity="center" />
 
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:weightSum="0"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+    </LinearLayout>
+
+    <!--
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
         android:name="androidx.navigation.fragment.NavHostFragment"
@@ -18,5 +40,6 @@
 
 
     </androidx.fragment.app.FragmentContainerView>
+    -->
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

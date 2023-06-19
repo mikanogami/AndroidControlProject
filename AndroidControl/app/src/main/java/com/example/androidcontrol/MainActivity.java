@@ -1,10 +1,5 @@
 package com.example.androidcontrol;
 
-import static com.example.androidcontrol.model.AppStateViewModel.ON_CLICK;
-import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_NOT_READY;
-import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_ENABLED;
-import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_RUNNING;
-import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_WAITING;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
@@ -24,6 +19,7 @@ import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.Window;
 
 import androidx.activity.result.ActivityResult;
@@ -31,15 +27,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.NavigationUI;
 
 import com.example.androidcontrol.databinding.ActivityMainBinding;
-import com.example.androidcontrol.model.AppStateViewModel;
 import com.example.androidcontrol.service.FollowerService;
 import com.example.androidcontrol.utils.UtilsPermissions;
 
@@ -53,7 +43,10 @@ public class MainActivity extends AppCompatActivity {
     private Boolean mIsBound;
     private FollowerService mBoundService;
     public static Window mWindow;
-
+    public static final int SERVICE_ENABLED = 1;
+    public static final int SERVICE_WAITING = 2;
+    public static final int SERVICE_RUNNING = 3;
+    public static Integer currentAppState;
 
     ActivityResultLauncher<Intent> mProjActivityLauncher =
             registerForActivityResult(
@@ -61,8 +54,7 @@ public class MainActivity extends AppCompatActivity {
                     (result) -> {
                         if (result.getResultCode() == RESULT_OK) {
                             Log.d(TAG, "screen capture request accepted");
-                            initServiceIntent(result);
-                            startService();
+                            onMediaProjectionPermissionGranted(result);
                         } else {
                             Log.d(TAG, "screen capture request denied");
                             finish();
@@ -77,8 +69,6 @@ public class MainActivity extends AppCompatActivity {
                     }
             );
 
-    private NavController navController;
-    private AppStateViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,9 +77,9 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
 
-        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-        navController = navHostFragment.getNavController();
-        NavigationUI.setupActionBarWithNavController(this, navController);
+        // AppStateButton (which allows us to start service) is enabled once permissions are granted
+        checkAccessibilityPermissions();
+
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getRealMetrics(displayMetrics);
         mWindow = getWindow();
@@ -99,109 +89,67 @@ public class MainActivity extends AppCompatActivity {
         VIDEO_PIXELS_WIDTH = displayMetrics.widthPixels;
         mIsBound = false;
 
-
-
-        viewModel = new ViewModelProvider(this).get(AppStateViewModel.class);
-        checkAccessibilityPermissions();
-        viewModel.getAppState().observe(this, new Observer<Integer>() {
+        binding.appStateButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onChanged(Integer integer) {
-                Log.d("onChanged", String.valueOf(integer));
+            public void onClick(View view) {
+                Log.d("click?", "click.");
+                if (binding.appStateButton.isEnabled()) {
+                    updateAppStateFromClick();
+                }
+            }
+        });
+    }
+
+
+
+    private void updateAppStateButtonUI(Integer appState) {
+        currentAppState = appState;
+        binding.appStateButton.setEnabled(true);
+        binding.appStateButton.clearColorFilter();
+        // sets default tint color
+        int tintColor = getResources().getColor(R.color.state_ready, getTheme());
+
+        switch (appState) {
+            case SERVICE_ENABLED:
+                tintColor = getResources().getColor(R.color.state_ready, getTheme());
+                break;
+            case SERVICE_WAITING:
+                tintColor = getResources().getColor(R.color.state_waiting, getTheme());
+                break;
+            case SERVICE_RUNNING:
+                tintColor = getResources().getColor(R.color.state_running, getTheme());
+        }
+        binding.appStateButton.getForeground().setTint(tintColor);
+    }
+
+    private void updateAppStateFromPeerStatus(Integer appState) {
+        updateAppStateButtonUI(appState);
+        currentAppState = appState;
+    }
+
+    private void updateAppStateFromClick() {
+        switch (currentAppState) {
+            case SERVICE_ENABLED:
                 if (mIsBound) {
-                    switch (integer) {
-                        case SERVICE_NOT_READY:
-                            break;
-                        case SERVICE_ENABLED:
-                            pauseService();
-                            break;
-                        case SERVICE_WAITING:
-                            resumeService();
-                            break;
-                        case SERVICE_RUNNING:
-                    }
+                    updateAppStateButtonUI(SERVICE_RUNNING);
+                    resumeService();
                 } else {
-                    switch (integer) {
-                        case SERVICE_NOT_READY:
-                        case SERVICE_ENABLED:
-                            break;
-                        case SERVICE_WAITING:
-                            if (mProjectionIntent != null) {
-                                startService();
-                            } else {
-                                getMediaProjectionPermission();
-                            }
-                            break;
-                        case SERVICE_RUNNING:
-                    }
+                    // UI and appState will updated if permissions are granted
+                    startService();
                 }
-
-            }
-        });
-        viewModel.getStartButtonState().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(Boolean aBoolean) {
-                if (aBoolean == ON_CLICK) {
-                    Log.d(TAG, "startClicked");
-                    if (mProjectionIntent != null) {
-                        if (mIsBound) {
-
-                        } else {
-                            startService();
-                        }
-                    } else {
-                        getMediaProjectionPermission();
-                    }
-                    viewModel.setStartButtonState(!ON_CLICK);
-                }
-            }
-
-        });
-        viewModel.getPauseButtonState().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(Boolean aBoolean) {
-                if (aBoolean == ON_CLICK) {
-                    Log.d(TAG, "pauseClicked");
-                    viewModel.setPauseButtonState(!ON_CLICK);
-                }
-            }
-        });
-        viewModel.getResumeButtonState().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(Boolean aBoolean) {
-                if (aBoolean == ON_CLICK) {
-                    Log.d(TAG, "resumeClicked");
-                    viewModel.setResumeButtonState(!ON_CLICK);
-                }
-
-            }
-        });
-        viewModel.getStopButtonState().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(Boolean aBoolean) {
-                if (aBoolean == ON_CLICK) {
-                    Log.d(TAG, "stopClicked");
-                    viewModel.setStopButtonState(!ON_CLICK);
-                }
-            }
-        });
+                break;
+            case SERVICE_WAITING:
+            case SERVICE_RUNNING:
+                updateAppStateButtonUI(SERVICE_ENABLED);
+                pauseService();
+                break;
+        }
     }
 
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        //navController.popBackStack(R.id.main_fragment, false);
-        navController.navigateUp();
-        return true;
-    }
-
-
-    private void updateViewModelState(Integer integer) {
-        viewModel.setAppState(integer);
-    }
 
     private void checkAccessibilityPermissions() {
         if (!UtilsPermissions.isAccessibilityPermissionGranted(this)) {
-            updateViewModelState(SERVICE_NOT_READY);
+            binding.appStateButton.setEnabled(false);
             new AlertDialog.Builder(this)
                     .setMessage(R.string.accessibility_hint)
                     .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
@@ -215,21 +163,30 @@ public class MainActivity extends AppCompatActivity {
                     .create()
                     .show();
         } else {
-            updateViewModelState(SERVICE_ENABLED);
+            binding.appStateButton.setEnabled(true);
+            updateAppStateButtonUI(SERVICE_ENABLED);
         }
     }
 
-    private void getMediaProjectionPermission() {
+    private void startService() {
         MediaProjectionManager mProjectionManager = (MediaProjectionManager)
                 getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         mProjActivityLauncher.launch(mProjectionManager.createScreenCaptureIntent());
     }
 
-    private void startService() {
+    private void onMediaProjectionPermissionGranted(ActivityResult result) {
+        updateAppStateButtonUI(SERVICE_WAITING);
+
+        mProjectionIntent = (Intent) result.getData();
+        serviceIntent = new Intent(this, FollowerService.class);
+        serviceIntent.putExtra(M_PROJ_INTENT, mProjectionIntent);
+
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(messageReceiver, new IntentFilter("update-app-state"));
     }
+
+
 
 
     @Override
@@ -251,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
             // Extract data included in the Intent
             int appState = intent.getIntExtra("new-app-state", -1); // -1 is going to be used as the default value
             if (appState != -1) {
-                updateViewModelState(appState);
+                updateAppStateFromPeerStatus(appState);
             }
         }
     };
@@ -270,11 +227,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void initServiceIntent(ActivityResult result) {
-        mProjectionIntent = (Intent) result.getData();
-        serviceIntent = new Intent(this, FollowerService.class);
-        serviceIntent.putExtra(M_PROJ_INTENT, mProjectionIntent);
-    }
+
 
 
     private void pauseService() {
