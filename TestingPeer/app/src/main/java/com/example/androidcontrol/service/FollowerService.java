@@ -39,6 +39,8 @@ public class FollowerService extends Service {
         }
     }
 
+    public BindingB
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {

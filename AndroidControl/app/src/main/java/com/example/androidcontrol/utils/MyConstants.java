@@ -7,8 +7,8 @@ public abstract class MyConstants {
     public static final String PEER_CONNECTED = "@@@";
     public static final String PEER_DISCONNECTED = "###";
     public static final String PEER_UNAVAILABLE = "***Peer unavailable";
-    //public static final String SERVER_URL = "ws://10.0.0.77:8001/";
-    public static final String SERVER_URL = "wss://mirthus.herokuapp.com";
+    public static final String SERVER_URL = "ws://10.0.0.77:8001/";
+    //public static final String SERVER_URL = "wss://mirthus.herokuapp.com";
 
     // Video track properties
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
@@ -18,8 +18,9 @@ public abstract class MyConstants {
     public static int VIDEO_PIXELS_HEIGHT;
     public static int DISPLAY_SURFACE_WIDTH;
     public static int DISPLAY_SURFACE_HEIGHT;
-    public static final int FPS = 30;
+    public static final int FPS = 60;
 
+    public static final String BUBBLE_SHORTCUT_ID = "bubble-handler";
     public static final String NOTIF_CHANNEL_ID = "ForegroundServiceChannel";
     public static final String M_PROJ_INTENT = "mediaProjectionIntent";
     public static final float FLOAT_NULL = -1;

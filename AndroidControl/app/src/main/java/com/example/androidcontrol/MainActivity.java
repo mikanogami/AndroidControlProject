@@ -1,10 +1,14 @@
 package com.example.androidcontrol;
 
+import static com.example.androidcontrol.utils.MyConstants.BUBBLE_SHORTCUT_ID;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
+import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
 
 import android.app.AlertDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,7 +16,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.Manifest;
 import android.media.projection.MediaProjectionManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
@@ -26,6 +34,7 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -48,7 +57,8 @@ public class MainActivity extends AppCompatActivity {
     public static final int SERVICE_RUNNING = 3;
     public static Integer currentAppState;
 
-    ActivityResultLauncher<Intent> mProjActivityLauncher =
+
+    ActivityResultLauncher<Intent> mProjPermissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     (result) -> {
@@ -61,11 +71,28 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
             );
-    ActivityResultLauncher<Intent> accessibilityActivityLauncher =
+
+    ActivityResultLauncher<Intent> accessibilityPermissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     (result) -> {
                         checkAccessibilityPermissions();
+                    }
+            );
+
+    ActivityResultLauncher<Intent> bubblePermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    (result) -> {
+                        checkAccessibilityPermissions();
+                    }
+            );
+
+    ActivityResultLauncher<String> notificationsPermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    (result) -> {
+                        checkNotificationPermissions();
                     }
             );
 
@@ -76,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
+
+        createNotificationChannel();
 
         // AppStateButton (which allows us to start service) is enabled once permissions are granted
         checkAccessibilityPermissions();
@@ -97,10 +126,55 @@ public class MainActivity extends AppCompatActivity {
                     updateAppStateFromClick();
                 }
             }
+
         });
     }
 
+    NotificationManager manager;
+    private void createNotificationChannel() {
+        NotificationChannel serviceChannel = new NotificationChannel(
+                NOTIF_CHANNEL_ID,
+                BUBBLE_SHORTCUT_ID,
+                NotificationManager.IMPORTANCE_DEFAULT
+        );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            serviceChannel.setAllowBubbles(true);
+            serviceChannel.setBlockable(false);
+        }
 
+
+        manager = getSystemService(NotificationManager.class);
+        manager.createNotificationChannel(serviceChannel);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.d("getBubblePreference", String.valueOf(manager.getBubblePreference()));
+            Log.d("canBubble", String.valueOf(serviceChannel.canBubble()));
+            try {
+                Log.d("notification_bubbles", String.valueOf(Settings.Secure.getInt(this.getContentResolver(), "notification_bubbles")));
+            } catch (Settings.SettingNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private boolean checkDrawOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (!Settings.canDrawOverlays(this)) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void checkNotificationPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notificationsPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
 
     private void updateAppStateButtonUI(Integer appState) {
         currentAppState = appState;
@@ -146,6 +220,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void checkBubblePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (manager.getBubblePreference() == NotificationManager.BUBBLE_PREFERENCE_NONE) {
+                Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS);
+                intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                Log.d("getPackageName", getPackageName());
+                bubblePermissionLauncher.launch(intent);
+            }
+        }
+    }
 
     private void checkAccessibilityPermissions() {
         if (!UtilsPermissions.isAccessibilityPermissionGranted(this)) {
@@ -156,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                            accessibilityActivityLauncher.launch(intent);
+                            accessibilityPermissionLauncher.launch(intent);
                         }
                     })
                     .setCancelable(false)
@@ -168,10 +252,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     private void startService() {
         MediaProjectionManager mProjectionManager = (MediaProjectionManager)
                 getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        mProjActivityLauncher.launch(mProjectionManager.createScreenCaptureIntent());
+        mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent());
     }
 
     private void onMediaProjectionPermissionGranted(ActivityResult result) {
@@ -181,9 +266,12 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent = new Intent(this, FollowerService.class);
         serviceIntent.putExtra(M_PROJ_INTENT, mProjectionIntent);
 
+        checkNotificationPermissions();
+        checkBubblePermissions();
+
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(this)
-                .registerReceiver(messageReceiver, new IntentFilter("update-app-state"));
+                .registerReceiver(messageReceiver, new IntentFilter("test-message"));
     }
 
 
@@ -206,6 +294,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Extract data included in the Intent
+            Log.d("mikatest", "messagereceived");
             int appState = intent.getIntExtra("new-app-state", -1); // -1 is going to be used as the default value
             if (appState != -1) {
                 updateAppStateFromPeerStatus(appState);
