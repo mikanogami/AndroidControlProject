@@ -64,13 +64,12 @@ public class RTCClient {
 
         Log.d("onUnbind", "1");
         if (localVideoTrack != null) {
+            if (mediaStream != null) {
+                mediaStream.removeTrack(localVideoTrack);
+            }
             localVideoTrack.dispose();
         }
 
-        Log.d("onUnbind", "2");
-        if (mediaStream != null) {
-            //mediaStream.dispose();
-        }
 
         Log.d("onUnbind", "3");
         if (peerConnection != null) {
