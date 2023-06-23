@@ -79,6 +79,7 @@ public class MainFragment extends Fragment {
             }
         });
 
+        /*
         viewModel = new ViewModelProvider(requireActivity()).get(AppStateViewModel.class);
         viewModel.getAppState().observe(this, new Observer<Integer>() {
             @Override
@@ -150,6 +151,8 @@ public class MainFragment extends Fragment {
         });
 
 
+
+         */
         return binding.getRoot();
     }
 

@@ -1,14 +1,16 @@
 package com.example.androidcontrol;
 
-import static com.example.androidcontrol.utils.MyConstants.BUBBLE_SHORTCUT_ID;
+import static com.example.androidcontrol.utils.AppState.AWAIT_LAUNCH_PERMISSIONS;
+import static com.example.androidcontrol.utils.AppState.AWAIT_SERVICE_START;
+import static com.example.androidcontrol.utils.AppState.SERVICE_BOUND_AWAIT_PEER;
+import static com.example.androidcontrol.utils.AppState.LAUNCH_PERMISSIONS;
+import static com.example.androidcontrol.utils.AppState.SERVICE_RUNNING;
+import static com.example.androidcontrol.utils.AppState.SERVICE_READY;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
-import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
 
 import android.app.AlertDialog;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -16,11 +18,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
-import android.Manifest;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
@@ -33,30 +32,34 @@ import android.view.Window;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.androidcontrol.databinding.ActivityMainBinding;
 import com.example.androidcontrol.service.FollowerService;
+import com.example.androidcontrol.utils.AppState;
 import com.example.androidcontrol.utils.UtilsPermissions;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private ActivityMainBinding binding;
-
+    public static final String LOCAL_BROADCAST_ACTION = "update-app-state";
+    public static final String BUBBLE_CLICK = "on-bubble-click";
+    public static final String PEER_CONN = "on-peer-connect";
+    public static final String PEER_DISCONN = "on-peer-disconnect";
     private Intent serviceIntent;
     private Intent mProjectionIntent;
     private Boolean mIsBound;
     private FollowerService mBoundService;
     public static Window mWindow;
-    public static final int SERVICE_ENABLED = 1;
-    public static final int SERVICE_WAITING = 2;
-    public static final int SERVICE_RUNNING = 3;
-    public static Integer currentAppState;
 
+    LocalBroadcastManager broadcastManager;
 
     ActivityResultLauncher<Intent> mProjPermissionLauncher =
             registerForActivityResult(
@@ -64,7 +67,8 @@ public class MainActivity extends AppCompatActivity {
                     (result) -> {
                         if (result.getResultCode() == RESULT_OK) {
                             Log.d(TAG, "screen capture request accepted");
-                            onMediaProjectionPermissionGranted(result);
+                            mProjectionIntent = (Intent) result.getData();
+                            onMediaProjectionPermissionGranted();
                         } else {
                             Log.d(TAG, "screen capture request denied");
                             finish();
@@ -72,30 +76,31 @@ public class MainActivity extends AppCompatActivity {
                     }
             );
 
+    ActivityResultLauncher<Intent> appPermissionsLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    (result) -> {
+                        launchAppPermissions();
+                    }
+            );
+
     ActivityResultLauncher<Intent> accessibilityPermissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     (result) -> {
-                        checkAccessibilityPermissions();
+                        launchAccessibilityPermissions();
                     }
             );
 
-    ActivityResultLauncher<Intent> bubblePermissionLauncher =
+    ActivityResultLauncher<Intent> overlaysPermissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     (result) -> {
-                        checkAccessibilityPermissions();
+                        launchDrawOverlayPermission();
                     }
             );
 
-    ActivityResultLauncher<String> notificationsPermissionLauncher =
-            registerForActivityResult(
-                    new ActivityResultContracts.RequestPermission(),
-                    (result) -> {
-                        checkNotificationPermissions();
-                    }
-            );
-
+    private static AppState appState;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,10 +109,47 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
 
-        createNotificationChannel();
+        appState = new ViewModelProvider(this).get(AppState.class);
+        appState.getAppState().observe(this, new Observer<Integer>() {
+            @Override
+            public void onChanged(@Nullable Integer data) {
+                // update ui.
+                Log.d("onAppStateChange", String.valueOf(data));
+                updateAppStateUI(data);
+                switch (data) {
+                    case AWAIT_LAUNCH_PERMISSIONS:
+                        break;
+                    case LAUNCH_PERMISSIONS:
+                        launchAppPermissions();
+                    case AWAIT_SERVICE_START:
+                        break;
+                    case SERVICE_BOUND_AWAIT_PEER:
+                        startAndBindService();
+                        break;
+                    case SERVICE_READY:
+                        onServiceReady();
+                        break;
+                    case SERVICE_RUNNING:
+                        onServiceRunning();
+                        break;
+                }
+            }
+        });
 
-        // AppStateButton (which allows us to start service) is enabled once permissions are granted
-        checkAccessibilityPermissions();
+        // app initial state based on app permissions
+        if (hasAppPermissions()) { appState.onPermissionsGranted(); }
+        else { appState.onPermissionsNotGranted(); }
+
+
+        binding.appStateButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d("click?", "click.");
+                appState.onMainButtonClick();
+            }
+        });
+
+
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getRealMetrics(displayMetrics);
@@ -118,56 +160,110 @@ public class MainActivity extends AppCompatActivity {
         VIDEO_PIXELS_WIDTH = displayMetrics.widthPixels;
         mIsBound = false;
 
-        binding.appStateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.d("click?", "click.");
-                if (binding.appStateButton.isEnabled()) {
-                    updateAppStateFromClick();
-                }
-            }
 
-        });
     }
 
-    NotificationManager manager;
-    private void createNotificationChannel() {
-        NotificationChannel serviceChannel = new NotificationChannel(
-                NOTIF_CHANNEL_ID,
-                BUBBLE_SHORTCUT_ID,
-                NotificationManager.IMPORTANCE_DEFAULT
-        );
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            serviceChannel.setAllowBubbles(true);
-            serviceChannel.setBlockable(false);
-        }
-
-
-        manager = getSystemService(NotificationManager.class);
-        manager.createNotificationChannel(serviceChannel);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Log.d("getBubblePreference", String.valueOf(manager.getBubblePreference()));
-            Log.d("canBubble", String.valueOf(serviceChannel.canBubble()));
-            try {
-                Log.d("notification_bubbles", String.valueOf(Settings.Secure.getInt(this.getContentResolver(), "notification_bubbles")));
-            } catch (Settings.SettingNotFoundException e) {
-                throw new RuntimeException(e);
-            }
+    private void onServiceReady() {
+        if (mIsBound) {
+            mBoundService.onServiceReady();
         }
     }
 
-    private boolean checkDrawOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= 23) {
-            if (!Settings.canDrawOverlays(this)) {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:" + getPackageName()));
-                startActivity(intent);
-                return false;
-            }
+    private void onServiceRunning() {
+        if (mIsBound) {
+            mBoundService.onServiceRunning();
         }
-        return true;
     }
 
+    private boolean hasAppPermissions() {
+        return hasDrawOverlayPermission() && hasAccessibilityPermission();
+    }
+    private boolean hasDrawOverlayPermission() {
+        return Settings.canDrawOverlays(this);
+    }
+    private boolean hasAccessibilityPermission() {
+        return UtilsPermissions.isAccessibilityPermissionGranted(this);
+    }
+
+    private void launchAppPermissions() {
+        launchAccessibilityPermissions();
+        launchDrawOverlayPermission();
+        appState.onPermissionsGranted();
+    }
+
+
+    private void launchAccessibilityPermissions() {
+        if (!hasAccessibilityPermission()) {
+            launchPermissionRequest(
+                    R.string.accessibility_hint,
+                    Settings.ACTION_ACCESSIBILITY_SETTINGS,
+                    null
+            );
+            /*
+            new AlertDialog.Builder(this)
+                    .setMessage(R.string.accessibility_hint)
+                    .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                            startActivity(intent);
+                        }
+                    })
+                    .setCancelable(false)
+                    .create()
+                    .show();
+
+             */
+        }
+
+    }
+
+    private void launchDrawOverlayPermission() {
+        if (!hasDrawOverlayPermission()) {
+            launchPermissionRequest(R.string.overlays_hint, Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+
+            /*
+            new AlertDialog.Builder(this)
+                    .setMessage(R.string.overlays_hint)
+                    .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:" + getPackageName()));
+                            startActivity(intent);
+                        }
+                    })
+                    .setCancelable(false)
+                    .create()
+                    .show();
+
+             */
+
+
+        }
+    }
+    private void launchPermissionRequest(int messageId, String action, Uri uri) {
+        new AlertDialog.Builder(this)
+                .setMessage(messageId)
+                .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent(action, uri);
+                        startActivity(intent);
+                    }
+                })
+                .setCancelable(false)
+                .create()
+                .show();
+    }
+
+
+
+
+    /*
     private void checkNotificationPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -176,131 +272,54 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateAppStateButtonUI(Integer appState) {
-        currentAppState = appState;
+     */
+
+    private void updateAppStateUI(@NonNull Integer currentAppState) {
         binding.appStateButton.setEnabled(true);
         binding.appStateButton.clearColorFilter();
         // sets default tint color
-        int tintColor = getResources().getColor(R.color.state_ready, getTheme());
+        int tintColor = getResources().getColor(R.color.white, getTheme());
 
-        switch (appState) {
-            case SERVICE_ENABLED:
-                tintColor = getResources().getColor(R.color.state_ready, getTheme());
+        switch (currentAppState) {
+            case AWAIT_LAUNCH_PERMISSIONS:
+                tintColor = getResources().getColor(R.color.light_grey, getTheme());
                 break;
-            case SERVICE_WAITING:
-                tintColor = getResources().getColor(R.color.state_waiting, getTheme());
+            case LAUNCH_PERMISSIONS:
+                binding.appStateButton.setEnabled(false);
+                tintColor = getResources().getColor(R.color.white, getTheme());
                 break;
+            case AWAIT_SERVICE_START:
+                tintColor = getResources().getColor(R.color.white, getTheme());
+                break;
+            case SERVICE_BOUND_AWAIT_PEER:
+                tintColor = getResources().getColor(R.color.amber, getTheme());
+                break;
+            case SERVICE_READY:
             case SERVICE_RUNNING:
-                tintColor = getResources().getColor(R.color.state_running, getTheme());
+                tintColor = getResources().getColor(R.color.green, getTheme());
+                break;
         }
         binding.appStateButton.getForeground().setTint(tintColor);
     }
 
-    private void updateAppStateFromPeerStatus(Integer appState) {
-        updateAppStateButtonUI(appState);
-        currentAppState = appState;
-    }
-
-    private void updateAppStateFromClick() {
-        switch (currentAppState) {
-            case SERVICE_ENABLED:
-                if (mIsBound) {
-                    updateAppStateButtonUI(SERVICE_RUNNING);
-                    resumeService();
-                } else {
-                    // UI and appState will updated if permissions are granted
-                    startService();
-                }
-                break;
-            case SERVICE_WAITING:
-            case SERVICE_RUNNING:
-                updateAppStateButtonUI(SERVICE_ENABLED);
-                pauseService();
-                break;
-        }
-    }
-
-    private void checkBubblePermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (manager.getBubblePreference() == NotificationManager.BUBBLE_PREFERENCE_NONE) {
-                Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS);
-                intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
-                Log.d("getPackageName", getPackageName());
-                bubblePermissionLauncher.launch(intent);
-            }
-        }
-    }
-
-    private void checkAccessibilityPermissions() {
-        if (!UtilsPermissions.isAccessibilityPermissionGranted(this)) {
-            binding.appStateButton.setEnabled(false);
-            new AlertDialog.Builder(this)
-                    .setMessage(R.string.accessibility_hint)
-                    .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                            accessibilityPermissionLauncher.launch(intent);
-                        }
-                    })
-                    .setCancelable(false)
-                    .create()
-                    .show();
+    private void startAndBindService() {
+        if (mProjectionIntent == null) {
+            MediaProjectionManager mProjectionManager = (MediaProjectionManager)
+                    getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent());
         } else {
-            binding.appStateButton.setEnabled(true);
-            updateAppStateButtonUI(SERVICE_ENABLED);
+            onMediaProjectionPermissionGranted();
         }
     }
 
-
-    private void startService() {
-        MediaProjectionManager mProjectionManager = (MediaProjectionManager)
-                getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent());
-    }
-
-    private void onMediaProjectionPermissionGranted(ActivityResult result) {
-        updateAppStateButtonUI(SERVICE_WAITING);
-
-        mProjectionIntent = (Intent) result.getData();
+    private void onMediaProjectionPermissionGranted() {
         serviceIntent = new Intent(this, FollowerService.class);
         serviceIntent.putExtra(M_PROJ_INTENT, mProjectionIntent);
 
-        checkNotificationPermissions();
-        checkBubblePermissions();
-
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
-        LocalBroadcastManager.getInstance(this)
-                .registerReceiver(messageReceiver, new IntentFilter("test-message"));
+        broadcastManager = LocalBroadcastManager.getInstance(this);
+        broadcastManager.registerReceiver(broadcastReceiver, new IntentFilter(LOCAL_BROADCAST_ACTION));
     }
-
-
-
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (mIsBound != null) {
-            if (mIsBound) {
-                unbindService(mConnection);
-                LocalBroadcastManager.getInstance(this)
-                        .unregisterReceiver(messageReceiver);
-                mIsBound = false;
-            }
-        }
-    }
-
-    private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // Extract data included in the Intent
-            Log.d("mikatest", "messagereceived");
-            int appState = intent.getIntExtra("new-app-state", -1); // -1 is going to be used as the default value
-            if (appState != -1) {
-                updateAppStateFromPeerStatus(appState);
-            }
-        }
-    };
 
     private ServiceConnection mConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -318,6 +337,88 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Extract data included in the Intent
+            if (intent.getAction().equals(LOCAL_BROADCAST_ACTION)) {
+                String updateType = intent.getStringExtra(Intent.EXTRA_TEXT);
+                Log.d("broadcastReceiver", updateType);
+                switch (updateType) {
+                    case BUBBLE_CLICK:
+                        appState.onBubbleButtonClick();
+                        break;
+                    case PEER_CONN:
+                        appState.onPeerConnect();
+                        break;
+                    case PEER_DISCONN:
+                        appState.onPeerDisconnect();
+                }
+            }
+        }
+    };
+
+    /*
+
+    private void updateAppStateFromPeerStatus(Integer appState) {
+        updateAppStateButtonUI();
+        currentAppState = appState;
+    }
+
+    private void updateAppStateFromClick() {
+        switch (currentAppState) {
+            case SERVICE_BOUND_AWAIT_PEER:
+                if (mIsBound) {
+                    updateAppStateButtonUI(SERVICE_RUNNING);
+                    resumeService();
+                } else {
+                    // UI and appState will updated if permissions are granted
+                    startService();
+                }
+                break;
+            case SERVICE_READY:
+            case SERVICE_RUNNING:
+                updateAppStateButtonUI(SERVICE_BOUND_AWAIT_PEER);
+                pauseService();
+                break;
+        }
+    }
+
+
+    private void checkBubblePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (manager.getBubblePreference() == NotificationManager.BUBBLE_PREFERENCE_NONE) {
+                Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS);
+                intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                Log.d("getPackageName", getPackageName());
+                bubblePermissionLauncher.launch(intent);
+            }
+        }
+    }
+
+
+
+
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mIsBound != null) {
+            if (mIsBound) {
+                unbindService(mConnection);
+                broadcastManager.unregisterReceiver(broadcastReceiver);
+                mIsBound = false;
+            }
+        }
+    }
+
+
+
+
+
+
 
     private void pauseService() {
         if (mIsBound) {
@@ -330,5 +431,8 @@ public class MainActivity extends AppCompatActivity {
             mBoundService.onResumeService();
         }
     }
+
+     */
+
 
 }

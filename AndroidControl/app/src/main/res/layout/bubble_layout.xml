@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:animateLayoutChanges="true">
+    <data>
+        <variable name="handler" type="com.example.androidcontrol.ui.BubbleHandler" />
+        <variable name="View" type="android.view.View" />
+    </data>
+    <ImageView
+        android:id="@+id/bubble_1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="@{handler::onClick}"
+        />
+</layout>

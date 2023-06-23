@@ -19,6 +19,8 @@
 
     <string name="bubble_service">BubbleService</string>
     <string name="accessibility_hint">This app uses accessibility service to simulate user interface events. The accessibility permissions screen will now open. Please grant accessibility permissions to the app.</string>
+    <string name="overlays_hint">This app uses draw overlays to provide User Interface controls for the app service. The draw overlays screen will now open. Please grant permissions to the app.</string>
+
     <string name="continue_button">Continue</string>
     <string name="permission_type">permission_type</string>
 

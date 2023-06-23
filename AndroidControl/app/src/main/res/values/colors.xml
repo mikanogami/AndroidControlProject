@@ -10,7 +10,8 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- Button State Colours. -->
-    <color name="state_ready">@color/white</color>
-    <color name="state_waiting">#FFBF00</color>
-    <color name="state_running">#00D100</color>
+    <color name="amber">#FFBF00</color>
+    <color name="green">#00D100</color>
+    <color name="light_grey">#959595</color>
+    <color name="dark_grey">#606060</color>
 </resources>

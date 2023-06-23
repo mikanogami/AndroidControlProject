@@ -1,7 +1,5 @@
 package com.example.androidcontrol.service;
 
-import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_RUNNING;
-import static com.example.androidcontrol.model.AppStateViewModel.SERVICE_WAITING;
 import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
 import static com.example.androidcontrol.utils.MyConstants.PEER_CONNECTED;
 import static com.example.androidcontrol.utils.MyConstants.PEER_DISCONNECTED;
@@ -76,17 +74,16 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
             socketClient.enableDoEncrypt();
             initPeerConnection();
             handleStartSignal();
-            peerConnectionListener.updateAppState(SERVICE_RUNNING);
+            peerConnectionListener.broadcastPeerConnected();
             return;
         } else if (message.equals(PEER_DISCONNECTED)) {
             Log.d("peer_status", "disconnected");
             socketClient.disableDoEncrypt();
-            peerConnectionListener.updateAppState(SERVICE_WAITING);
+            peerConnectionListener.broadcastPeerDisconnected();
             return;
         } else if (message.equals(PEER_UNAVAILABLE)) {
             Log.d("peer_status", "unavailable");
-            peerConnectionListener.updateAppState(SERVICE_WAITING);
-        } else {
+            peerConnectionListener.broadcastPeerDisconnected();
             JSONObject msgJson = new JSONObject(message);
             int messageType = msgJson.getInt("MessageType");
             String messageData = msgJson.getString("Data");
@@ -196,7 +193,8 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     }
 
     public interface PeerConnectionListener {
-        public void updateAppState(Integer integer);
+        public void broadcastPeerConnected();
+        public void broadcastPeerDisconnected();
     }
 
 }

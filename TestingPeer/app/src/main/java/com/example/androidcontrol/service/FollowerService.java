@@ -39,7 +39,6 @@ public class FollowerService extends Service {
         }
     }
 
-    public BindingB
 
     @Nullable
     @Override
