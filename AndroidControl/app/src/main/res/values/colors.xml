@@ -10,8 +10,14 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- Button State Colours. -->
-    <color name="amber">#FFBF00</color>
-    <color name="green">#00D100</color>
-    <color name="light_grey">#959595</color>
-    <color name="dark_grey">#606060</color>
+    <color name="main_button_background">@color/colorPrimary</color>
+    <color name="main_button_launch_permissions">#606060</color>
+    <color name="main_button_await_start">@color/white</color>
+    <color name="main_button_await_peer">#FFBF00</color>
+    <color name="main_button_peer_connected">#00D100</color>
+
+    <color name="bubble_button_background">#959595</color>
+    <color name="bubble_button_await_peer_tint">@color/white</color>
+    <color name="bubble_button_peer_connected_tint">@color/white</color>
+
 </resources>

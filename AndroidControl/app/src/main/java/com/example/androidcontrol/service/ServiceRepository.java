@@ -54,12 +54,15 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     public void start() {
         socketClient.connectToSignallingServer();
         initPeerConnection();
+        initStreamAndControl();
     }
 
     public void initPeerConnection() {
         rtcClient.initializePeerConnectionFactory();
         rtcClient.initializePeerConnections();
+    }
 
+    public void initStreamAndControl() {
         rtcClient.createVideoTrackFromCameraAndShowIt();
         rtcClient.startStreamingVideo();
         rtcClient.createControlDataChannel();
@@ -70,15 +73,14 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         if (message.equals(PEER_CONNECTED)) {
             Log.d("peer_status", "connected");
             socketClient.enableDoEncrypt();
+            initStreamAndControl();
             //initPeerConnection();
             handleStartSignal();
             peerConnectionListener.broadcastPeerConnected();
-            return;
         } else if (message.equals(PEER_DISCONNECTED)) {
             Log.d("peer_status", "disconnected");
             socketClient.disableDoEncrypt();
             peerConnectionListener.broadcastPeerDisconnected();
-            return;
         } else if (message.equals(PEER_UNAVAILABLE)) {
             Log.d("peer_status", "unavailable");
             peerConnectionListener.broadcastPeerDisconnected();
@@ -111,9 +113,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     public void handleStartSignal() {
         Log.d(TAG, "handleStartSignal: follower initiates the WebRTC signaling");
-        if (clientKey.equals(FOL_CLIENT_KEY)) {
-            rtcClient.handleStartSignal();
-        }
+        rtcClient.handleStartSignal();
     }
     public void handleOfferMessage(String sdpContent) {
         rtcClient.handleOfferMessage(sdpContent);

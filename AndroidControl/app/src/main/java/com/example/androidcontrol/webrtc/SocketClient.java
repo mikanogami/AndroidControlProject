@@ -26,6 +26,12 @@ public class SocketClient {
         doEncrypt = false;
     }
 
+    public void handleDispose() {
+        if (websocket != null) {
+            websocket.close();
+        }
+    }
+
     public void enableDoEncrypt() {
         doEncrypt = true;
     }
@@ -42,6 +48,7 @@ public class SocketClient {
             throw new RuntimeException(e);
         }
 
+        Log.d(TAG, "connectToSignallingServer");
         websocket = new WebSocketClient(uri) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
@@ -69,11 +76,11 @@ public class SocketClient {
         websocket.connect();
     }
 
-    public void handleDispose() {
-        if (websocket != null) {
-            websocket.close();
-        }
+    public void checkIsPeerConnected() {
+        websocket.send(AUTH_TOKEN + clientKey);
     }
+
+
 
 
     public static String dumbEncrypt(String msg) {
@@ -106,9 +113,6 @@ public class SocketClient {
         return String.valueOf(msgChar);
     }
 
-    public void checkIsPeerConnected() {
-        websocket.send(AUTH_TOKEN + clientKey);
-    }
 
     public void sendMessage(String message) {
         String messageToSend;

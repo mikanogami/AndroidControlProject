@@ -56,9 +56,32 @@ public class RTCClient {
     }
 
     public void handleDispose() {
-        mediaStream.dispose();
-        mSurfaceTextureHelper.stopListening();
-        mSurfaceTextureHelper.dispose();
+        Log.d("onUnbind", "0");
+        if (mSurfaceTextureHelper != null) {
+            mSurfaceTextureHelper.stopListening();
+            mSurfaceTextureHelper.dispose();
+        }
+
+        Log.d("onUnbind", "1");
+        if (localVideoTrack != null) {
+            localVideoTrack.dispose();
+        }
+
+        Log.d("onUnbind", "2");
+        if (mediaStream != null) {
+            //mediaStream.dispose();
+        }
+
+        Log.d("onUnbind", "3");
+        if (peerConnection != null) {
+            peerConnection.close();
+            peerConnection.dispose();
+        }
+
+        Log.d("onUnbind", "4");
+        if (factory != null) {
+            factory.stopAecDump();
+        }
     }
 
     public void handleStartSignal() {
