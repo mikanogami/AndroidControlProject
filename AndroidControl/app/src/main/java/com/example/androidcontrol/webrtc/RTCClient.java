@@ -12,8 +12,6 @@ import android.util.Log;
 import com.example.androidcontrol.utils.Type;
 import com.example.androidcontrol.utils.Utils;
 
-import org.webrtc.AudioSource;
-import org.webrtc.AudioTrack;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -43,9 +41,7 @@ public class RTCClient {
     private final Context context;
 
     public RTCClient.RTCListener rtcListener;
-    MediaConstraints audioConstraints;
-    AudioSource audioSource;
-    AudioTrack localAudioTrack;
+
     PeerConnection peerConnection;
     public EglBase rootEglBase = EglBase.create();
     PeerConnectionFactory factory;
@@ -53,17 +49,21 @@ public class RTCClient {
     public MediaStream mediaStream;
     private DataChannel localDataChannel;
     public static Intent mProjectionIntent;
+    SurfaceTextureHelper mSurfaceTextureHelper;
 
     public RTCClient(Context context) {
         this.context = context;
     }
 
+    public void handleDispose() {
+        mediaStream.dispose();
+        mSurfaceTextureHelper.stopListening();
+        mSurfaceTextureHelper.dispose();
+    }
 
     public void handleStartSignal() {
         MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
-        sdpMediaConstraints.mandatory.add(
-                new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
         sdpMediaConstraints.mandatory.add(
                 new MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"));
         peerConnection.createOffer(new SimpleSdpObserver() {
@@ -160,10 +160,9 @@ public class RTCClient {
 
 
 
-    public SurfaceTextureHelper mSurfaceTextureHelper;
+
 
     public void createVideoTrackFromCameraAndShowIt() {
-        audioConstraints = new MediaConstraints();
         VideoCapturer videoCapturer = createScreenCapturer();
         VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
         mSurfaceTextureHelper = SurfaceTextureHelper.create(
@@ -177,16 +176,11 @@ public class RTCClient {
         localVideoTrack.setEnabled(true);
 
         rtcListener.renderLocalVideoTrack(localVideoTrack);
-
-        //create an AudioSource instance
-        audioSource = factory.createAudioSource(audioConstraints);
-        localAudioTrack = factory.createAudioTrack("101", audioSource);
     }
 
     public void startStreamingVideo() {
         mediaStream = factory.createLocalMediaStream("ARDAMS");
         mediaStream.addTrack(localVideoTrack);
-        mediaStream.addTrack(localAudioTrack);
         peerConnection.addStream(mediaStream);
         Log.d(TAG, "Client media added to stream and started streaming locally");
     }
@@ -238,8 +232,6 @@ public class RTCClient {
             public void onAddStream(MediaStream mediaStream) {
                 Log.d(TAG, "onAddStream: " + mediaStream.videoTracks.size());
                 VideoTrack remoteVideoTrack = mediaStream.videoTracks.get(0);
-                AudioTrack remoteAudioTrack = mediaStream.audioTracks.get(0);
-                remoteAudioTrack.setEnabled(true);
                 remoteVideoTrack.setEnabled(true);
                 // remoteVideoTrack.addRenderer(new VideoRenderer(binding.surfaceView2));
 

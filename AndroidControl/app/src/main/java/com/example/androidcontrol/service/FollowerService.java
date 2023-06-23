@@ -4,6 +4,7 @@ import static com.example.androidcontrol.MainActivity.BUBBLE_CLICK;
 import static com.example.androidcontrol.MainActivity.LOCAL_BROADCAST_ACTION;
 import static com.example.androidcontrol.MainActivity.PEER_CONN;
 import static com.example.androidcontrol.MainActivity.PEER_DISCONN;
+import static com.example.androidcontrol.MainActivity.mWindow;
 import static com.example.androidcontrol.utils.MyConstants.BUBBLE_SHORTCUT_ID;
 import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
@@ -13,6 +14,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
@@ -30,6 +32,7 @@ import android.view.WindowManager;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import androidx.core.view.WindowCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.androidcontrol.R;
@@ -47,7 +50,6 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
     private final IBinder mBinder = new FollowerBinder();
 
 
-
     public class FollowerBinder extends Binder {
         public FollowerService getService() {
             return FollowerService.this;
@@ -59,6 +61,7 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
     @Override
     public IBinder onBind(Intent intent) {
         Log.d("BubbleService", "onBind");
+        WindowCompat.setDecorFitsSystemWindows(mWindow, false);
         createNotificationChannel();
         /*
         Intent notificationIntent = getPackageManager()
@@ -122,9 +125,8 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
                 .addPerson(bubbleHandler)
                 .setOngoing(true)
                 .build();
-         */
 
-        Notification notification = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
+                        Notification notification = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
                 .setTicker("Service is Running")
                 .setSmallIcon(R.drawable.ic_appstate_foreground)
                 .setContentTitle("Track title")
@@ -133,7 +135,24 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .build();
+         */
 
+
+        Intent notificationIntent = getPackageManager()
+                .getLaunchIntentForPackage(getPackageName())
+                .setPackage(null)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+
+        Notification notification = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
+                .setContentTitle("Foreground Service")
+                .setContentText(intent.getStringExtra("inputExtra"))
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                //.setBubbleMetadata(NotificationCompat.BubbleMetadata.fromPlatform(bubbleData))
+                .setContentIntent(pendingIntent)
+                .build();
 
         startForeground(1, notification);
 
@@ -164,26 +183,12 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
     private void createNotificationChannel() {
         NotificationChannel serviceChannel = new NotificationChannel(
                 NOTIF_CHANNEL_ID,
-                BUBBLE_SHORTCUT_ID,
+                "Foreground Service Channel",
                 NotificationManager.IMPORTANCE_DEFAULT
         );
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            serviceChannel.setAllowBubbles(true);
-            serviceChannel.setBlockable(false);
-        }
-
 
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.createNotificationChannel(serviceChannel);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Log.d("getBubblePreference", String.valueOf(manager.getBubblePreference()));
-            Log.d("canBubble", String.valueOf(serviceChannel.canBubble()));
-            try {
-                Log.d("notification_bubbles", String.valueOf(Settings.Secure.getInt(this.getContentResolver(), "notification_bubbles")));
-            } catch (Settings.SettingNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     @Override
@@ -214,10 +219,12 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
     public void broadcastPeerConnected() {
         sendLocalBroadcast(PEER_CONN);
     }
+
     @Override
     public void broadcastPeerDisconnected() {
         sendLocalBroadcast(PEER_DISCONN);
     }
+
     public void broadcastBubbleClicked() {
         sendLocalBroadcast(BUBBLE_CLICK);
     }
@@ -229,11 +236,8 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
     }
 
 
-
-
     public void onPauseService() {
         if (serviceRepo.rtcClient.mediaStream != null) {
-            serviceRepo.rtcClient.mediaStream.audioTracks.get(0).setEnabled(false);
             serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(false);
         }
 
@@ -242,7 +246,6 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
 
     public void onResumeService() {
         if (serviceRepo.rtcClient.mediaStream != null) {
-            serviceRepo.rtcClient.mediaStream.audioTracks.get(0).setEnabled(true);
             serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(true);
         }
 

@@ -69,6 +69,12 @@ public class SocketClient {
         websocket.connect();
     }
 
+    public void handleDispose() {
+        if (websocket != null) {
+            websocket.close();
+        }
+    }
+
 
     public static String dumbEncrypt(String msg) {
         int msgLen = msg.length();

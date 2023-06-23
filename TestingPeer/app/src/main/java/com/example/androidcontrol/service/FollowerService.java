@@ -53,7 +53,7 @@ public class FollowerService extends Service {
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
+                0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
         Notification.BubbleMetadata bubbleData;
         Notification notification;
@@ -68,7 +68,7 @@ public class FollowerService extends Service {
                     .setContentTitle("Foreground Service")
                     .setContentText(intent.getStringExtra("inputExtra"))
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setBubbleMetadata(NotificationCompat.BubbleMetadata.fromPlatform(bubbleData))
+                    //.setBubbleMetadata(NotificationCompat.BubbleMetadata.fromPlatform(bubbleData))
                     .setContentIntent(pendingIntent)
                     .build();
         } else {
@@ -106,12 +106,10 @@ public class FollowerService extends Service {
 
 
     public void onPauseService() {
-        serviceRepo.rtcClient.mediaStream.audioTracks.get(0).setEnabled(false);
         serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(false);
     }
 
     public void onResumeService() {
-        serviceRepo.rtcClient.mediaStream.audioTracks.get(0).setEnabled(true);
         serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(true);
     }
 

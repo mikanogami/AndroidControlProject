@@ -42,10 +42,9 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     }
 
     public void onUnbind() {
-        if (socketClient.websocket != null) {
-            socketClient.websocket.close();
-        }
-        rtcClient.mediaStream.dispose();
+        Log.d(TAG, "onUnbind");
+        socketClient.handleDispose();
+        rtcClient.handleDispose();
     }
 
     public void setMProjectionIntent(Intent mProjectionIntent) {
@@ -54,17 +53,16 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     public void start() {
         socketClient.connectToSignallingServer();
-        //initPeerConnection();
+        initPeerConnection();
     }
 
     public void initPeerConnection() {
         rtcClient.initializePeerConnectionFactory();
         rtcClient.initializePeerConnections();
-        if (clientKey.equals(FOL_CLIENT_KEY)) {
-            rtcClient.createVideoTrackFromCameraAndShowIt();
-            rtcClient.startStreamingVideo();
-            rtcClient.createControlDataChannel();
-        }
+
+        rtcClient.createVideoTrackFromCameraAndShowIt();
+        rtcClient.startStreamingVideo();
+        rtcClient.createControlDataChannel();
     }
 
     @Override
@@ -72,7 +70,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         if (message.equals(PEER_CONNECTED)) {
             Log.d("peer_status", "connected");
             socketClient.enableDoEncrypt();
-            initPeerConnection();
+            //initPeerConnection();
             handleStartSignal();
             peerConnectionListener.broadcastPeerConnected();
             return;
@@ -84,10 +82,10 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         } else if (message.equals(PEER_UNAVAILABLE)) {
             Log.d("peer_status", "unavailable");
             peerConnectionListener.broadcastPeerDisconnected();
+        } else {
             JSONObject msgJson = new JSONObject(message);
             int messageType = msgJson.getInt("MessageType");
             String messageData = msgJson.getString("Data");
-
             switch (messageType) {
                 case 1:
                     Log.d(TAG, "handleOfferMessage: received offer, sending answer " + message);
