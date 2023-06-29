@@ -52,17 +52,20 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     }
 
     public void start() {
-        socketClient.connectToSignallingServer();
         initPeerConnection();
+        socketClient.connectToSignallingServer();
     }
 
     public void initPeerConnection() {
         rtcClient.initializePeerConnectionFactory();
         rtcClient.initializePeerConnections();
-
-        rtcClient.createVideoTrackFromCameraAndShowIt();
+        rtcClient.createVideoTrackFromScreenCapture();
         rtcClient.startStreamingVideo();
         rtcClient.createControlDataChannel();
+    }
+
+    public void initStreamAndControl() {
+
     }
 
     @Override

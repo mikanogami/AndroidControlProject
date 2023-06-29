@@ -53,9 +53,19 @@ public class RTCClient {
     }
 
     public void handleDispose() {
-        mediaStream.dispose();
-        mSurfaceTextureHelper.stopListening();
-        mSurfaceTextureHelper.dispose();
+        if (mediaStream != null) {
+            mediaStream.removeTrack(localVideoTrack);
+            localVideoTrack.dispose();
+            mSurfaceTextureHelper.stopListening();
+            mSurfaceTextureHelper.dispose();
+            mediaStream = null;
+        }
+
+        if (peerConnection != null) {
+            peerConnection.close();
+            peerConnection.dispose();
+            factory.stopAecDump();
+        }
     }
 
     public void handleStartSignal() {
@@ -159,20 +169,17 @@ public class RTCClient {
 
 
 
-    public void createVideoTrackFromCameraAndShowIt() {
+    public void createVideoTrackFromScreenCapture() {
         VideoCapturer videoCapturer = createScreenCapturer();
         VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
-        mSurfaceTextureHelper = SurfaceTextureHelper.create(
-                Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
-        videoCapturer.initialize(mSurfaceTextureHelper, context,
-                videoSource.getCapturerObserver());
-
+        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
+        videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
 
         videoCapturer.startCapture(VIDEO_PIXELS_WIDTH, VIDEO_PIXELS_HEIGHT, FPS);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
-        localVideoTrack.setEnabled(true);
+        //localVideoTrack.setEnabled(true);
 
-        rtcListener.renderLocalVideoTrack(localVideoTrack);
+        //rtcListener.renderLocalVideoTrack(localVideoTrack);
     }
 
     public void startStreamingVideo() {

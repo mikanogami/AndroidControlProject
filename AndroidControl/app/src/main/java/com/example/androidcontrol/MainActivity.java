@@ -15,7 +15,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Icon;
@@ -79,27 +78,14 @@ public class MainActivity extends AppCompatActivity {
                     }
             );
 
-    ActivityResultLauncher<Intent> appPermissionsLauncher =
+    ActivityResultLauncher<Intent> permissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     (result) -> {
-                        launchAppPermissions();
-                    }
-            );
-
-    ActivityResultLauncher<Intent> accessibilityPermissionLauncher =
-            registerForActivityResult(
-                    new ActivityResultContracts.StartActivityForResult(),
-                    (result) -> {
-                        launchAccessibilityPermissions();
-                    }
-            );
-
-    ActivityResultLauncher<Intent> overlaysPermissionLauncher =
-            registerForActivityResult(
-                    new ActivityResultContracts.StartActivityForResult(),
-                    (result) -> {
-                        launchDrawOverlayPermission();
+                        if (result.getResultCode() != RESULT_OK) {
+                            Log.d("CheckPermissions", "not accepted");
+                            appState.onPermissionsNotGranted();
+                        }
                     }
             );
 
@@ -146,14 +132,15 @@ public class MainActivity extends AppCompatActivity {
                 updateBubbleButtonUI(data);
                 switch (data) {
                     case AWAIT_LAUNCH_PERMISSIONS:
+                        onAwaitLaunchPermissions();
                         break;
                     case LAUNCH_PERMISSIONS:
-                        launchAppPermissions();
+                        onLaunchPermissions();
                     case AWAIT_SERVICE_START:
                         onAwaitServiceStart();
                         break;
                     case SERVICE_BOUND_AWAIT_PEER:
-                        startAndBindService();
+                        onServiceBoundAwaitPeer();
                         break;
                     case SERVICE_READY:
                         onServiceReady();
@@ -166,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // app initial state based on app permissions
-        setStateFromPermissions();
+        //setStateFromPermissions();
 
 
         binding.appStateButton.setOnClickListener(new View.OnClickListener() {
@@ -197,23 +184,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void onAwaitLaunchPermissions() {
+        if (hasAppPermissions()) {
+            appState.onPermissionsGranted();
+        } else if (!appState.getCurrentAppState().equals(AWAIT_LAUNCH_PERMISSIONS)) {
+            appState.onPermissionsNotGranted();
+        }
+    }
 
     private void onAwaitServiceStart() {
-        // double check we have our permissions
-        //setStateFromPermissions();
-
         if (mIsBound) {
             unbindFromService();
         }
     }
 
-    private void setStateFromPermissions() {
-        if (hasAppPermissions()) {
-            appState.onPermissionsGranted();
-        } else {
-            appState.onPermissionsNotGranted();
-        }
-    }
 
     private void onServiceReady() {
         if (mIsBound) {
@@ -239,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
         return UtilsPermissions.isAccessibilityPermissionGranted(this);
     }
 
-    private void launchAppPermissions() {
+    private void onLaunchPermissions() {
         launchAccessibilityPermissions();
         launchDrawOverlayPermission();
         appState.onPermissionsGranted();
@@ -248,86 +232,36 @@ public class MainActivity extends AppCompatActivity {
 
     private void launchAccessibilityPermissions() {
         if (!hasAccessibilityPermission()) {
-            launchPermissionRequest(
-                    R.string.accessibility_hint,
-                    Settings.ACTION_ACCESSIBILITY_SETTINGS,
-                    null
-            );
-            /*
-            new AlertDialog.Builder(this)
-                    .setMessage(R.string.accessibility_hint)
-                    .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                            intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-                            startActivity(intent);
-                        }
-                    })
-                    .setCancelable(false)
-                    .create()
-                    .show();
-
-             */
+            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS, null);
+            intent.putExtra("message-id", R.string.accessibility_hint);
+            launchPermissionRequest(intent);
         }
 
     }
 
     private void launchDrawOverlayPermission() {
         if (!hasDrawOverlayPermission()) {
-            launchPermissionRequest(R.string.overlays_hint, Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
-
-            /*
-            new AlertDialog.Builder(this)
-                    .setMessage(R.string.overlays_hint)
-                    .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                    Uri.parse("package:" + getPackageName()));
-                            startActivity(intent);
-                        }
-                    })
-                    .setCancelable(false)
-                    .create()
-                    .show();
-
-             */
-
-
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            intent.putExtra("message-id", R.string.overlays_hint);
+            launchPermissionRequest(intent);
         }
     }
 
-    private void launchPermissionRequest(int messageId, String action, Uri uri) {
+    private void launchPermissionRequest(Intent intent) {
         new AlertDialog.Builder(this)
-                .setMessage(messageId)
+                .setMessage(intent.getIntExtra("message-id", -1))
                 .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Intent intent = new Intent(action, uri);
-                        startActivity(intent);
+                        //Intent intent = new Intent(action, uri);
+                        permissionLauncher.launch(intent);
                     }
                 })
                 .setCancelable(false)
                 .create()
                 .show();
     }
-
-
-
-
-    /*
-    private void checkNotificationPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                notificationsPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
-            }
-        }
-    }
-
-     */
 
     private void updateBubbleButtonUI(@NonNull Integer currentAppState) {
         switch (currentAppState) {
@@ -392,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
         binding.appStateButton.getForeground().setTint(tintColor);
     }
 
-    private void startAndBindService() {
+    private void onServiceBoundAwaitPeer() {
         if (mProjectionIntent == null) {
             MediaProjectionManager mProjectionManager = (MediaProjectionManager)
                     getSystemService(Context.MEDIA_PROJECTION_SERVICE);
@@ -449,71 +383,4 @@ public class MainActivity extends AppCompatActivity {
         }
         super.onDestroy();
     }
-
-    /*
-
-    private void updateAppStateFromPeerStatus(Integer appState) {
-        updateAppStateButtonUI();
-        currentAppState = appState;
-    }
-
-    private void updateAppStateFromClick() {
-        switch (currentAppState) {
-            case SERVICE_BOUND_AWAIT_PEER:
-                if (mIsBound) {
-                    updateAppStateButtonUI(SERVICE_RUNNING);
-                    resumeService();
-                } else {
-                    // UI and appState will updated if permissions are granted
-                    startService();
-                }
-                break;
-            case SERVICE_READY:
-            case SERVICE_RUNNING:
-                updateAppStateButtonUI(SERVICE_BOUND_AWAIT_PEER);
-                pauseService();
-                break;
-        }
-    }
-
-
-    private void checkBubblePermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (manager.getBubblePreference() == NotificationManager.BUBBLE_PREFERENCE_NONE) {
-                Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS);
-                intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
-                Log.d("getPackageName", getPackageName());
-                bubblePermissionLauncher.launch(intent);
-            }
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    private void pauseService() {
-        if (mIsBound) {
-            mBoundService.onPauseService();
-        }
-    }
-
-    private void resumeService() {
-        if (mIsBound) {
-            mBoundService.onResumeService();
-        }
-    }
-
-     */
-
-
 }

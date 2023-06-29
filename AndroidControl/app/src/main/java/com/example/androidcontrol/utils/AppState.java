@@ -14,7 +14,7 @@ public class AppState extends ViewModel {
 
     private final MutableLiveData<Integer> appState = new MutableLiveData<Integer>();
     private static Integer currentAppState;
-    public AppState() {}
+    public AppState() { setAppState(AWAIT_LAUNCH_PERMISSIONS); }
 
     public LiveData<Integer> getAppState() { return appState; }
     public Integer getCurrentAppState() { return currentAppState; }
