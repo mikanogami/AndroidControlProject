@@ -11,13 +11,14 @@ import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
 
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.Icon;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -25,11 +26,12 @@ import android.os.IBinder;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 
-import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -38,10 +40,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.androidcontrol.databinding.ActivityMainBinding;
+import com.example.androidcontrol.databinding.BubbleLayoutBinding;
 import com.example.androidcontrol.service.FollowerService;
+import com.example.androidcontrol.ui.BubbleHandler;
 import com.example.androidcontrol.utils.AppState;
 import com.example.androidcontrol.utils.UtilsPermissions;
 
@@ -49,17 +52,17 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private ActivityMainBinding binding;
-    public static final String LOCAL_BROADCAST_ACTION = "update-app-state";
     public static final String BUBBLE_CLICK = "on-bubble-click";
-    public static final String PEER_CONN = "on-peer-connect";
-    public static final String PEER_DISCONN = "on-peer-disconnect";
+    public static final String ON_PEER_CONN = "on-peer-connect";
+    public static final String ON_PEER_DISCONN = "on-peer-disconnect";
     private Intent serviceIntent;
+
     private Intent mProjectionIntent;
     private Boolean mIsBound;
     private FollowerService mBoundService;
     public static Window mWindow;
-
-    LocalBroadcastManager broadcastManager;
+    public BubbleLayoutBinding serviceBubbleBinding;
+    public WindowManager.LayoutParams mBubbleLayoutParams;
 
     ActivityResultLauncher<Intent> mProjPermissionLauncher =
             registerForActivityResult(
@@ -100,6 +103,30 @@ public class MainActivity extends AppCompatActivity {
                     }
             );
 
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            FollowerService.FollowerBinder binder = (FollowerService.FollowerBinder) service;
+            mBoundService = binder.getService();
+            mIsBound = true;
+
+            binder.getPeerStatus().observe(MainActivity.this, peerStatus -> {
+                Log.d("peerConnectionStatus", "onChanged");
+                if (peerStatus.equals(ON_PEER_CONN)) {
+                    appState.onPeerConnect();
+                } else if (peerStatus.equals(ON_PEER_DISCONN)) {
+                    appState.onPeerDisconnect();
+                }
+            });
+            Log.d(TAG, "Follower service connected");
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            mIsBound = false;
+            destroyServiceBubble();
+            Log.d(TAG, "Follower service disconnected");
+        }
+    };
+
     private static AppState appState;
 
     @Override
@@ -115,13 +142,15 @@ public class MainActivity extends AppCompatActivity {
             public void onChanged(@Nullable Integer data) {
                 // update ui.
                 Log.d("onAppStateChange", String.valueOf(data));
-                updateAppStateUI(data);
+                updateAppStateButtonUI(data);
+                updateBubbleButtonUI(data);
                 switch (data) {
                     case AWAIT_LAUNCH_PERMISSIONS:
                         break;
                     case LAUNCH_PERMISSIONS:
                         launchAppPermissions();
                     case AWAIT_SERVICE_START:
+                        onAwaitServiceStart();
                         break;
                     case SERVICE_BOUND_AWAIT_PEER:
                         startAndBindService();
@@ -137,8 +166,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // app initial state based on app permissions
-        if (hasAppPermissions()) { appState.onPermissionsGranted(); }
-        else { appState.onPermissionsNotGranted(); }
+        setStateFromPermissions();
 
 
         binding.appStateButton.setOnClickListener(new View.OnClickListener() {
@@ -148,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
                 appState.onMainButtonClick();
             }
         });
-
 
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
@@ -163,24 +190,49 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void unbindFromService() {
+        destroyServiceBubble();
+        mIsBound = false;
+        this.unbindService(mConnection);
+    }
+
     private void onServiceReady() {
         if (mIsBound) {
-            mBoundService.onServiceReady();
+            //mBoundService.onServiceReady();
+        }
+    }
+
+    private void onAwaitServiceStart() {
+        // double check we have our permissions
+        //setStateFromPermissions();
+
+        if (mIsBound) {
+            unbindFromService();
+        }
+    }
+
+    private void setStateFromPermissions() {
+        if (hasAppPermissions()) {
+            appState.onPermissionsGranted();
+        } else {
+            appState.onPermissionsNotGranted();
         }
     }
 
     private void onServiceRunning() {
         if (mIsBound) {
-            mBoundService.onServiceRunning();
+            //mBoundService.onServiceRunning();
         }
     }
 
     private boolean hasAppPermissions() {
         return hasDrawOverlayPermission() && hasAccessibilityPermission();
     }
+
     private boolean hasDrawOverlayPermission() {
         return Settings.canDrawOverlays(this);
     }
+
     private boolean hasAccessibilityPermission() {
         return UtilsPermissions.isAccessibilityPermissionGranted(this);
     }
@@ -245,6 +297,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
+
     private void launchPermissionRequest(int messageId, String action, Uri uri) {
         new AlertDialog.Builder(this)
                 .setMessage(messageId)
@@ -274,7 +327,40 @@ public class MainActivity extends AppCompatActivity {
 
      */
 
-    private void updateAppStateUI(@NonNull Integer currentAppState) {
+    private void updateBubbleButtonUI(@NonNull Integer currentAppState) {
+        switch (currentAppState) {
+            case AWAIT_LAUNCH_PERMISSIONS:
+            case LAUNCH_PERMISSIONS:
+            case AWAIT_SERVICE_START:
+                break;
+            case SERVICE_BOUND_AWAIT_PEER:
+                if (mProjectionIntent != null) {
+                    if (serviceBubbleBinding == null) {
+                        createServiceBubble();
+                    }
+                    serviceBubbleBinding.bubble1.clearColorFilter();
+                    serviceBubbleBinding.getRoot().setEnabled(false);
+                    serviceBubbleBinding.getRoot().setVisibility(View.VISIBLE);
+                    serviceBubbleBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.do_not_disturb_24));
+                }
+                break;
+            case SERVICE_READY:
+                serviceBubbleBinding.bubble1.clearColorFilter();
+                serviceBubbleBinding.getRoot().setEnabled(true);
+                serviceBubbleBinding.getRoot().setVisibility(View.VISIBLE);
+                serviceBubbleBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.play_arrow_24));
+                break;
+            case SERVICE_RUNNING:
+                serviceBubbleBinding.bubble1.clearColorFilter();
+                serviceBubbleBinding.getRoot().setEnabled(true);
+                serviceBubbleBinding.getRoot().setVisibility(View.VISIBLE);
+                serviceBubbleBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.pause_24));
+                break;
+        }
+
+    }
+
+    private void updateAppStateButtonUI(@NonNull Integer currentAppState) {
         binding.appStateButton.setEnabled(true);
         binding.appStateButton.clearColorFilter();
         // sets default tint color
@@ -282,7 +368,7 @@ public class MainActivity extends AppCompatActivity {
 
         switch (currentAppState) {
             case AWAIT_LAUNCH_PERMISSIONS:
-                tintColor = getResources().getColor(R.color.light_grey, getTheme());
+                tintColor = getResources().getColor(R.color.bubble_button_background, getTheme());
                 break;
             case LAUNCH_PERMISSIONS:
                 binding.appStateButton.setEnabled(false);
@@ -292,11 +378,13 @@ public class MainActivity extends AppCompatActivity {
                 tintColor = getResources().getColor(R.color.white, getTheme());
                 break;
             case SERVICE_BOUND_AWAIT_PEER:
-                tintColor = getResources().getColor(R.color.amber, getTheme());
+                if (mProjectionIntent != null) {
+                    tintColor = getResources().getColor(R.color.main_button_await_peer, getTheme());
+                }
                 break;
             case SERVICE_READY:
             case SERVICE_RUNNING:
-                tintColor = getResources().getColor(R.color.green, getTheme());
+                tintColor = getResources().getColor(R.color.main_button_peer_connected, getTheme());
                 break;
         }
         binding.appStateButton.getForeground().setTint(tintColor);
@@ -317,46 +405,48 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.putExtra(M_PROJ_INTENT, mProjectionIntent);
 
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
-        broadcastManager = LocalBroadcastManager.getInstance(this);
-        broadcastManager.registerReceiver(broadcastReceiver, new IntentFilter(LOCAL_BROADCAST_ACTION));
+
+        updateAppStateButtonUI(appState.getCurrentAppState());
+        updateBubbleButtonUI(appState.getCurrentAppState());
     }
 
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            FollowerService.FollowerBinder binder = (FollowerService.FollowerBinder) service;
-            mBoundService = binder.getService();
-            mIsBound = true;
-            Log.d(TAG, "Follower service connected");
-        }
-
-        public void onServiceDisconnected(ComponentName className) {
-            mIsBound = false;
-            Log.d(TAG, "Follower service disconnected");
-        }
-    };
 
 
+    private void createServiceBubble() {
+        LayoutInflater layoutInflater = LayoutInflater.from(this);
+        serviceBubbleBinding = BubbleLayoutBinding.inflate(layoutInflater);
+        serviceBubbleBinding.setHandler(new BubbleHandler(this.appState));
+        serviceBubbleBinding.bubble1.setBackground(getDrawable(R.drawable.bubble_background));
 
-    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // Extract data included in the Intent
-            if (intent.getAction().equals(LOCAL_BROADCAST_ACTION)) {
-                String updateType = intent.getStringExtra(Intent.EXTRA_TEXT);
-                Log.d("broadcastReceiver", updateType);
-                switch (updateType) {
-                    case BUBBLE_CLICK:
-                        appState.onBubbleButtonClick();
-                        break;
-                    case PEER_CONN:
-                        appState.onPeerConnect();
-                        break;
-                    case PEER_DISCONN:
-                        appState.onPeerDisconnect();
-                }
+        mBubbleLayoutParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        mBubbleLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
+
+        getWindowManager().addView(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
+    }
+
+    private void destroyServiceBubble() {
+        getWindowManager().removeView(serviceBubbleBinding.getRoot());
+        serviceBubbleBinding = null;
+        mBubbleLayoutParams = null;
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, "onDestroy");
+        if (mIsBound != null) {
+            if (mIsBound) {
+                unbindService(mConnection);
+                mIsBound = false;
             }
         }
-    };
+        super.onDestroy();
+    }
 
     /*
 
@@ -402,17 +492,6 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (mIsBound != null) {
-            if (mIsBound) {
-                unbindService(mConnection);
-                broadcastManager.unregisterReceiver(broadcastReceiver);
-                mIsBound = false;
-            }
-        }
-    }
 
 
 

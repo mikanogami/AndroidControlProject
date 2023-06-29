@@ -44,7 +44,7 @@ public class AppState extends ViewModel {
             case SERVICE_BOUND_AWAIT_PEER:
             case SERVICE_READY:
             case SERVICE_RUNNING:
-                setAppState(AWAIT_SERVICE_START);
+                setAppState(LAUNCH_PERMISSIONS);
                 break;
         }
     }
@@ -94,5 +94,3 @@ public class AppState extends ViewModel {
     }
 
 }
-
-
