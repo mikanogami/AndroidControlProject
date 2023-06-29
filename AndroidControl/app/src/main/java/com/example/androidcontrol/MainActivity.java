@@ -198,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void onServiceReady() {
         if (mIsBound) {
-            //mBoundService.onServiceReady();
+            mBoundService.onServiceReady();
         }
     }
 

@@ -187,15 +187,19 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
     }
 
     public void onServiceReady() {
-        mBubbleLayoutBinding.getRoot().setEnabled(true);
-        mBubbleLayoutBinding.getRoot().setVisibility(View.VISIBLE);
-        mBubbleLayoutBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.play_arrow_24));
+        if (serviceRepo.rtcClient.mediaStream != null) {
+            serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(false);
+        }
+
+        serviceRepo.screenControlEnabled = false;
     }
 
     public void onServiceRunning() {
-        mBubbleLayoutBinding.getRoot().setEnabled(true);
-        mBubbleLayoutBinding.getRoot().setVisibility(View.VISIBLE);
-        mBubbleLayoutBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.pause_24));
+        if (serviceRepo.rtcClient.mediaStream != null) {
+            serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(true);
+        }
+
+        serviceRepo.screenControlEnabled = true;
     }
 
     @Override
@@ -212,29 +216,7 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
 
 
     public void onPauseService() {
-        if (serviceRepo.rtcClient.mediaStream != null) {
-            serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(false);
-        }
 
-        serviceRepo.isPaused = true;
-    }
-
-    public void onResumeService() {
-        if (serviceRepo.rtcClient.mediaStream != null) {
-            serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(true);
-        }
-
-        // Send test message to server
-        /*
-        if (serviceRepo.socketClient != null) {
-            Log.d("checkIsPeerConnected", "success");
-            sendBroadcastUpdateAppState(SERVICE_RUNNING);
-            serviceRepo.socketClient.checkIsPeerConnected();
-        }
-
-         */
-
-        serviceRepo.isPaused = false;
     }
 
 

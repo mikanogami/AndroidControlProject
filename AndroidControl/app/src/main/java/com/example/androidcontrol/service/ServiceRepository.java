@@ -1,6 +1,5 @@
 package com.example.androidcontrol.service;
 
-import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
 import static com.example.androidcontrol.utils.MyConstants.PEER_CONNECTED;
 import static com.example.androidcontrol.utils.MyConstants.PEER_DISCONNECTED;
 import static com.example.androidcontrol.utils.MyConstants.PEER_UNAVAILABLE;
@@ -21,19 +20,19 @@ import java.util.Arrays;
 
 public class ServiceRepository implements SocketClient.SocketListener, RTCClient.RTCListener {
     private static final String TAG = "ServiceRepository";
-    private static final String IceSeperatorChar = "|";
+    private static final String IceSeparatorChar = "|";
     public VideoRenderListener videoRenderListener;
     public PeerConnectionListener peerConnectionListener;
     Context context;
     String clientKey;
     protected SocketClient socketClient;
     public RTCClient rtcClient;
-    public boolean isPaused;
+    public boolean screenControlEnabled;
 
     public ServiceRepository(Context context, String clientKey) {
         this.context = context;
         this.clientKey = clientKey;
-        isPaused = false;
+        screenControlEnabled = false;
         socketClient = new SocketClient(clientKey);
         rtcClient = new RTCClient(context);
 
@@ -138,15 +137,15 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     public void sendCandidateToSocket(String sdp, int sdpMLineIndex, String sdpMid) {
         String content = sdp
-                + IceSeperatorChar + String.valueOf(sdpMLineIndex)
-                + IceSeperatorChar + sdpMid;
+                + IceSeparatorChar + String.valueOf(sdpMLineIndex)
+                + IceSeparatorChar + sdpMid;
         sendToSocket(3, content);
     }
 
     @Override
     public void renderControlEvent(byte[] eventBytes) {
 
-        if (!isPaused) {
+        if (screenControlEnabled) {
             Intent intent = new Intent(context, ControlService.class);
             intent.putExtra("event", eventBytes);
             Log.d(TAG, String.valueOf(Utils.bytesToFloat(eventBytes)) + " "
@@ -163,7 +162,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         try {
             message.put("MessageType", type);
             message.put("Data", content);
-            message.put("IceDataSeparator", IceSeperatorChar);
+            message.put("IceDataSeparator", IceSeparatorChar);
             socketClient.sendMessage(String.valueOf(message));
             Log.d(TAG, "onIceCandidate: sending candidate " + message);
         } catch (JSONException e) {
