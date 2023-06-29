@@ -26,6 +26,12 @@ public class SocketClient {
         doEncrypt = false;
     }
 
+    public void handleDispose() {
+        if (websocket != null) {
+            websocket.close();
+        }
+    }
+
     public void enableDoEncrypt() {
         doEncrypt = true;
     }
@@ -69,11 +75,7 @@ public class SocketClient {
         websocket.connect();
     }
 
-    public void handleDispose() {
-        if (websocket != null) {
-            websocket.close();
-        }
-    }
+
 
 
     public static String dumbEncrypt(String msg) {

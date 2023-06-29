@@ -12,9 +12,6 @@ import android.util.Log;
 import com.example.androidcontrol.utils.Type;
 import com.example.androidcontrol.utils.Utils;
 
-import org.webrtc.Camera1Enumerator;
-import org.webrtc.Camera2Enumerator;
-import org.webrtc.CameraEnumerator;
 import org.webrtc.DataChannel;
 import org.webrtc.DefaultVideoDecoderFactory;
 import org.webrtc.DefaultVideoEncoderFactory;
@@ -301,46 +298,6 @@ public class RTCClient {
         return screenCapturer;
     }
 
-
-    private VideoCapturer createVideoCapturer() {
-        VideoCapturer videoCapturer;
-        if (useCamera2()) {
-            videoCapturer = createCameraCapturer(new Camera2Enumerator(context));
-        } else {
-            videoCapturer = createCameraCapturer(new Camera1Enumerator(true));
-        }
-        return videoCapturer;
-    }
-
-    private VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
-        final String[] deviceNames = enumerator.getDeviceNames();
-
-        for (String deviceName : deviceNames) {
-            if (enumerator.isFrontFacing(deviceName)) {
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        for (String deviceName : deviceNames) {
-            if (!enumerator.isFrontFacing(deviceName)) {
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private boolean useCamera2() {
-        return Camera2Enumerator.isSupported(context);
-    }
 
     public interface RTCListener {
         void sendSdpToSocket(String sdp, int type);

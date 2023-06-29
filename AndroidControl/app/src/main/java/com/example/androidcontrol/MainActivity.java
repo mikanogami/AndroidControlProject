@@ -196,11 +196,7 @@ public class MainActivity extends AppCompatActivity {
         this.unbindService(mConnection);
     }
 
-    private void onServiceReady() {
-        if (mIsBound) {
-            //mBoundService.onServiceReady();
-        }
-    }
+
 
     private void onAwaitServiceStart() {
         // double check we have our permissions
@@ -219,9 +215,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void onServiceReady() {
+        if (mIsBound) {
+            mBoundService.onServiceReady();
+        }
+    }
+
     private void onServiceRunning() {
         if (mIsBound) {
-            //mBoundService.onServiceRunning();
+            mBoundService.onServiceRunning();
         }
     }
 
