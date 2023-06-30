@@ -6,7 +6,6 @@ import static com.example.androidcontrol.MainActivity.mWindow;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_NOT_READY;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_READY;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_RUNNING;
-import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
 
@@ -52,7 +51,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
     public BubbleLayoutBinding serviceBubbleBinding;
     public WindowManager.LayoutParams mBubbleLayoutParams;
     private final MutableLiveData<String> peerStatusLiveData = new MutableLiveData<String>();
-    private ServiceRepository serviceRepo = new ServiceRepository(this, FOL_CLIENT_KEY);
+    private ServiceRepository serviceRepo = new ServiceRepository(this);
     private final IBinder mBinder = new FollowerBinder();
     private static ServiceStateHolder serviceState;
 

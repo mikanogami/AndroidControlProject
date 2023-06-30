@@ -2,10 +2,8 @@ package com.example.androidcontrol;
 
 import static com.example.androidcontrol.utils.ActivityStateHolder.AWAIT_LAUNCH_PERMISSIONS;
 import static com.example.androidcontrol.utils.ActivityStateHolder.AWAIT_SERVICE_START;
-import static com.example.androidcontrol.utils.ActivityStateHolder.SERVICE_BOUND_AWAIT_PEER;
+import static com.example.androidcontrol.utils.ActivityStateHolder.SERVICE_BOUND;
 import static com.example.androidcontrol.utils.ActivityStateHolder.LAUNCH_PERMISSIONS;
-import static com.example.androidcontrol.utils.ActivityStateHolder.SERVICE_RUNNING;
-import static com.example.androidcontrol.utils.ActivityStateHolder.SERVICE_READY;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
@@ -86,17 +84,6 @@ public class MainActivity extends AppCompatActivity {
             mBoundService = binder.getService();
             mIsBound = true;
 
-            /*
-            binder.getPeerStatus().observe(MainActivity.this, peerStatus -> {
-                Log.d("peerConnectionStatus", "onChanged");
-                if (peerStatus.equals(ON_PEER_CONN)) {
-                    activityStateHolder.onPeerConnect();
-                } else if (peerStatus.equals(ON_PEER_DISCONN)) {
-                    activityStateHolder.onPeerDisconnect();
-                }
-            });
-
-             */
             Log.d(TAG, "Follower service connected");
         }
 
@@ -131,22 +118,12 @@ public class MainActivity extends AppCompatActivity {
                     case AWAIT_SERVICE_START:
                         onAwaitServiceStart();
                         break;
-                    case SERVICE_BOUND_AWAIT_PEER:
-                        onServiceBoundAwaitPeer();
-                        break;
-                    case SERVICE_READY:
-                        onServiceReady();
-                        break;
-                    case SERVICE_RUNNING:
-                        onServiceRunning();
+                    case SERVICE_BOUND:
+                        onServiceBound();
                         break;
                 }
             }
         });
-
-        // app initial state based on app permissions
-        //setStateFromPermissions();
-
 
         binding.appStateButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -186,19 +163,6 @@ public class MainActivity extends AppCompatActivity {
     private void onAwaitServiceStart() {
         if (mIsBound) {
             unbindFromService();
-        }
-    }
-
-
-    private void onServiceReady() {
-        if (mIsBound) {
-            mBoundService.onServiceReady();
-        }
-    }
-
-    private void onServiceRunning() {
-        if (mIsBound) {
-            mBoundService.onServiceRunning();
         }
     }
 
@@ -274,20 +238,16 @@ public class MainActivity extends AppCompatActivity {
             case AWAIT_SERVICE_START:
                 tintColor = getResources().getColor(R.color.white, getTheme());
                 break;
-            case SERVICE_BOUND_AWAIT_PEER:
+            case SERVICE_BOUND:
                 if (mProjectionIntent != null) {
                     tintColor = getResources().getColor(R.color.main_button_await_peer, getTheme());
                 }
-                break;
-            case SERVICE_READY:
-            case SERVICE_RUNNING:
-                tintColor = getResources().getColor(R.color.main_button_peer_connected, getTheme());
                 break;
         }
         binding.appStateButton.getForeground().setTint(tintColor);
     }
 
-    private void onServiceBoundAwaitPeer() {
+    private void onServiceBound() {
         if (mProjectionIntent == null) {
             MediaProjectionManager mProjectionManager = (MediaProjectionManager)
                     getSystemService(Context.MEDIA_PROJECTION_SERVICE);

@@ -25,16 +25,14 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     public VideoRenderListener videoRenderListener;
     public PeerConnectionListener peerConnectionListener;
     Context context;
-    String clientKey;
     protected SocketClient socketClient;
     public RTCClient rtcClient;
     public boolean isPaused;
 
-    public ServiceRepository(Context context, String clientKey) {
+    public ServiceRepository(Context context) {
         this.context = context;
-        this.clientKey = clientKey;
         isPaused = false;
-        socketClient = new SocketClient(clientKey);
+        socketClient = new SocketClient(FOL_CLIENT_KEY);
         rtcClient = new RTCClient(context);
 
         socketClient.listener = this;
@@ -114,9 +112,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     public void handleStartSignal() {
         Log.d(TAG, "handleStartSignal: follower initiates the WebRTC signaling");
-        if (clientKey.equals(FOL_CLIENT_KEY)) {
-            rtcClient.handleStartSignal();
-        }
+        rtcClient.handleStartSignal();
     }
     public void handleOfferMessage(String sdpContent) {
         rtcClient.handleOfferMessage(sdpContent);

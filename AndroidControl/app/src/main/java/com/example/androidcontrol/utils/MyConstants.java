@@ -20,10 +20,8 @@ public abstract class MyConstants {
     public static int DISPLAY_SURFACE_HEIGHT;
     public static final int FPS = 30;
 
-    public static final String BUBBLE_SHORTCUT_ID = "bubble-handler";
     public static final String NOTIF_CHANNEL_ID = "ForegroundServiceChannel";
     public static final String M_PROJ_INTENT = "mediaProjectionIntent";
-    public static final float FLOAT_NULL = -1;
     public static final String DATA_CHANNEL_NAME = "phoneControl";
 
 }

@@ -8,9 +8,7 @@ public class ActivityStateHolder extends ViewModel {
     public static final int AWAIT_LAUNCH_PERMISSIONS = 0;
     public static final int LAUNCH_PERMISSIONS = 1;
     public static final int AWAIT_SERVICE_START = 2;
-    public static final int SERVICE_BOUND_AWAIT_PEER = 3;
-    public static final int SERVICE_READY = 4;
-    public static final int SERVICE_RUNNING = 5;
+    public static final int SERVICE_BOUND = 3;
 
     private final MutableLiveData<Integer> appState = new MutableLiveData<Integer>();
     private static Integer currentAppState;
@@ -39,58 +37,11 @@ public class ActivityStateHolder extends ViewModel {
             case LAUNCH_PERMISSIONS:
                 break;
             case AWAIT_SERVICE_START:
-                setAppState(SERVICE_BOUND_AWAIT_PEER);
+                setAppState(SERVICE_BOUND);
                 break;
-            case SERVICE_BOUND_AWAIT_PEER:
-            case SERVICE_READY:
-            case SERVICE_RUNNING:
+            case SERVICE_BOUND:
                 setAppState(LAUNCH_PERMISSIONS);
                 break;
         }
     }
-
-    public void onBubbleButtonClick() {
-        switch (currentAppState) {
-            case AWAIT_LAUNCH_PERMISSIONS:
-            case LAUNCH_PERMISSIONS:
-            case AWAIT_SERVICE_START:
-            case SERVICE_BOUND_AWAIT_PEER:
-                break;
-            case SERVICE_READY:
-                setAppState(SERVICE_RUNNING);
-                break;
-            case SERVICE_RUNNING:
-                setAppState(SERVICE_READY);
-                break;
-        }
-    }
-
-    public void onPeerDisconnect() {
-        switch (currentAppState) {
-            case AWAIT_LAUNCH_PERMISSIONS:
-            case LAUNCH_PERMISSIONS:
-            case AWAIT_SERVICE_START:
-            case SERVICE_BOUND_AWAIT_PEER:
-                break;
-            case SERVICE_READY:
-            case SERVICE_RUNNING:
-                setAppState(SERVICE_BOUND_AWAIT_PEER);
-                break;
-        }
-    }
-
-    public void onPeerConnect() {
-        switch (currentAppState) {
-            case AWAIT_LAUNCH_PERMISSIONS:
-            case LAUNCH_PERMISSIONS:
-            case AWAIT_SERVICE_START:
-                break;
-            case SERVICE_BOUND_AWAIT_PEER:
-                setAppState(SERVICE_READY);
-                break;
-            case SERVICE_READY:
-            case SERVICE_RUNNING:
-        }
-    }
-
 }
