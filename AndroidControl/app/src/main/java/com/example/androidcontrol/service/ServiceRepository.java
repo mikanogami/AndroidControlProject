@@ -22,7 +22,6 @@ import java.util.Arrays;
 public class ServiceRepository implements SocketClient.SocketListener, RTCClient.RTCListener {
     private static final String TAG = "ServiceRepository";
     private static final String IceSeperatorChar = "|";
-    public VideoRenderListener videoRenderListener;
     public PeerConnectionListener peerConnectionListener;
     Context context;
     protected SocketClient socketClient;
@@ -168,25 +167,6 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         } catch (JSONException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void renderLocalVideoTrack(VideoTrack vTrack) {
-        if (videoRenderListener != null) {
-            videoRenderListener.renderLocalVideoTrack(vTrack);
-
-        }
-    }
-    @Override
-    public void renderRemoteVideoTrack(VideoTrack vTrack) {
-        if (videoRenderListener != null) {
-            videoRenderListener.renderRemoteVideoTrack(vTrack);
-        }
-    }
-
-    public interface VideoRenderListener {
-        void renderLocalVideoTrack(VideoTrack vTrack);
-        void renderRemoteVideoTrack(VideoTrack vTrack);
     }
 
     public interface PeerConnectionListener {

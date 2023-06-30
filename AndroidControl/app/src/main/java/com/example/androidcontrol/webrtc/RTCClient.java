@@ -177,9 +177,6 @@ public class RTCClient {
 
         videoCapturer.startCapture(VIDEO_PIXELS_WIDTH, VIDEO_PIXELS_HEIGHT, FPS);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
-        //localVideoTrack.setEnabled(true);
-
-        //rtcListener.renderLocalVideoTrack(localVideoTrack);
     }
 
     public void startStreamingVideo() {
@@ -234,13 +231,7 @@ public class RTCClient {
 
             @Override
             public void onAddStream(MediaStream mediaStream) {
-                Log.d(TAG, "onAddStream: " + mediaStream.videoTracks.size());
-                VideoTrack remoteVideoTrack = mediaStream.videoTracks.get(0);
-                remoteVideoTrack.setEnabled(true);
-                // remoteVideoTrack.addRenderer(new VideoRenderer(binding.surfaceView2));
-
-                rtcListener.renderRemoteVideoTrack(remoteVideoTrack);
-                //remoteVideoTrack.addSink(clientActivity.getBinding().surfaceView2);
+                Log.d(TAG, "onAddStream: " + "FOL does not receive media streams from expert");
             }
 
             @Override
@@ -310,7 +301,5 @@ public class RTCClient {
         void sendSdpToSocket(String sdp, int type);
         void sendCandidateToSocket(String sdp, int sdpMLineIndex, String sdpMid);
         void renderControlEvent(byte[] eventBytes);
-        void renderLocalVideoTrack(VideoTrack vTrack);
-        void renderRemoteVideoTrack(VideoTrack vTrack);
     }
 }

@@ -14,7 +14,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Icon;
@@ -32,7 +31,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import androidx.core.view.WindowCompat;
-import androidx.lifecycle.Lifecycle;
+
 import androidx.lifecycle.LifecycleService;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
