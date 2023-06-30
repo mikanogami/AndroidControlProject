@@ -4,7 +4,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-public class AppState extends ViewModel {
+public class ActivityStateHolder extends ViewModel {
     public static final int AWAIT_LAUNCH_PERMISSIONS = 0;
     public static final int LAUNCH_PERMISSIONS = 1;
     public static final int AWAIT_SERVICE_START = 2;
@@ -14,7 +14,7 @@ public class AppState extends ViewModel {
 
     private final MutableLiveData<Integer> appState = new MutableLiveData<Integer>();
     private static Integer currentAppState;
-    public AppState() { setAppState(AWAIT_LAUNCH_PERMISSIONS); }
+    public ActivityStateHolder() { setAppState(AWAIT_LAUNCH_PERMISSIONS); }
 
     public LiveData<Integer> getAppState() { return appState; }
     public Integer getCurrentAppState() { return currentAppState; }

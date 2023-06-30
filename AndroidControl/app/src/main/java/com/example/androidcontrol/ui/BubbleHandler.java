@@ -5,13 +5,12 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.example.androidcontrol.service.FollowerService;
-import com.example.androidcontrol.utils.AppState;
 
 public class BubbleHandler implements View.OnClickListener {
 
-    AppState appState;
+    FollowerService service;
 
-    public BubbleHandler(AppState appState) { this.appState = appState; }
+    public BubbleHandler(FollowerService followerService) { this.service = followerService; }
     public boolean onTouch(View view, MotionEvent motionEvent) {
         switch (motionEvent.getAction()) {
             case MotionEvent.ACTION_DOWN:
@@ -32,7 +31,7 @@ public class BubbleHandler implements View.OnClickListener {
     @Override
     public void onClick(View view) {
         Log.d("BubbleHandler", "onClick");
-        appState.onBubbleButtonClick();
+        service.onBubbleClick();
     }
 
 }

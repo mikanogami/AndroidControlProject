@@ -3,6 +3,9 @@ package com.example.androidcontrol.service;
 import static com.example.androidcontrol.MainActivity.ON_PEER_CONN;
 import static com.example.androidcontrol.MainActivity.ON_PEER_DISCONN;
 import static com.example.androidcontrol.MainActivity.mWindow;
+import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_NOT_READY;
+import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_READY;
+import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_RUNNING;
 import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
@@ -14,35 +17,44 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.PixelFormat;
 import android.graphics.drawable.Icon;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import androidx.core.view.WindowCompat;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleService;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import com.example.androidcontrol.R;
 import com.example.androidcontrol.databinding.BubbleLayoutBinding;
+import com.example.androidcontrol.model.ServiceStateHolder;
+import com.example.androidcontrol.ui.BubbleHandler;
 
 
-public class FollowerService extends Service implements ServiceRepository.PeerConnectionListener {
+public class FollowerService extends LifecycleService implements ServiceRepository.PeerConnectionListener {
 
     private static final String TAG = "FollowerService";
     private static WindowManager mWindowManager;
-    public BubbleLayoutBinding mBubbleLayoutBinding;
+    public BubbleLayoutBinding serviceBubbleBinding;
     public WindowManager.LayoutParams mBubbleLayoutParams;
     private final MutableLiveData<String> peerStatusLiveData = new MutableLiveData<String>();
     private ServiceRepository serviceRepo = new ServiceRepository(this, FOL_CLIENT_KEY);
     private final IBinder mBinder = new FollowerBinder();
-
+    private static ServiceStateHolder serviceState;
 
     public class FollowerBinder extends Binder {
         public FollowerService getService() {
@@ -55,6 +67,7 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        super.onBind(intent);
         Log.d("BubbleService", "onBind");
         WindowCompat.setDecorFitsSystemWindows(mWindow, false);
         createNotificationChannel();
@@ -70,7 +83,27 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
 
          */
 
+        serviceState = new ServiceStateHolder();
+        Observer<Integer> myObserver = new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer data) {
+                Log.d("onServiceStateChanged", String.valueOf(data));
+                updateBubbleButtonUI(data);
+                switch (data) {
+                    case SERVICE_NOT_READY:
+                        onServiceNotReady();
+                        break;
+                    case SERVICE_READY:
+                        onServiceReady();
+                        break;
+                    case SERVICE_RUNNING:
+                        onServiceRunning();
+                        break;
+                }
+            }
+        };
 
+        serviceState.getServiceState().observe(this, myObserver);
 
         //onServiceAwaitPeer();
 
@@ -120,7 +153,6 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
                 .build();
          */
 
-
         Intent notificationIntent = getPackageManager()
                 .getLaunchIntentForPackage(getPackageName())
                 .setPackage(null)
@@ -151,9 +183,54 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
         serviceRepo.setMProjectionIntent(mProjectionIntent);
         serviceRepo.start();
 
+
         return mBinder;
     }
 
+    private void updateBubbleButtonUI(@NonNull Integer currentServiceState) {
+        if (serviceBubbleBinding == null) {
+            createServiceBubble();
+        }
+
+        serviceBubbleBinding.bubble1.clearColorFilter();
+        serviceBubbleBinding.getRoot().setVisibility(View.VISIBLE);
+        serviceBubbleBinding.getRoot().setEnabled(true);
+        Icon imageIcon = Icon.createWithResource(this, R.drawable.do_not_disturb_24);
+        switch (currentServiceState) {
+            case SERVICE_NOT_READY:
+                serviceBubbleBinding.getRoot().setEnabled(false);
+                break;
+            case SERVICE_READY:
+                imageIcon = Icon.createWithResource(this, R.drawable.play_arrow_24);
+                break;
+            case SERVICE_RUNNING:
+                imageIcon = Icon.createWithResource(this, R.drawable.pause_24);
+        }
+        serviceBubbleBinding.bubble1.setImageIcon(imageIcon);
+    }
+
+    public void createServiceBubble() {
+        LayoutInflater layoutInflater = LayoutInflater.from(this);
+        serviceBubbleBinding = BubbleLayoutBinding.inflate(layoutInflater);
+        serviceBubbleBinding.setHandler(new BubbleHandler(this));
+        serviceBubbleBinding.bubble1.setBackground(getDrawable(R.drawable.bubble_background));
+
+        mBubbleLayoutParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        mBubbleLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
+
+        getWindowManager().addView(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
+    }
+
+    private void destroyServiceBubble() {
+        getWindowManager().removeView(serviceBubbleBinding.getRoot());
+        serviceBubbleBinding = null;
+        mBubbleLayoutParams = null;
+    }
 
     public WindowManager getWindowManager() {
         if (mWindowManager == null) {
@@ -176,14 +253,13 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
 
     @Override
     public boolean onUnbind(Intent intent) {
+        destroyServiceBubble();
         serviceRepo.onUnbind();
         return super.onUnbind(intent);
     }
 
-    public void onServiceAwaitPeer() {
-        mBubbleLayoutBinding.getRoot().setEnabled(false);
-        mBubbleLayoutBinding.getRoot().setVisibility(View.VISIBLE);
-        mBubbleLayoutBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.do_not_disturb_24));
+    public void onServiceNotReady() {
+
     }
 
     public void onServiceReady() {
@@ -202,16 +278,22 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
         serviceRepo.isPaused = false;
     }
 
+    public void onBubbleClick() {
+        serviceState.onBubbleButtonClick();
+    }
+
     @Override
     public void broadcastPeerConnected() {
         Log.d("broadcastPeerConnected", "attempt to broadcast");
         peerStatusLiveData.postValue(ON_PEER_CONN);
+        serviceState.onPeerConnect();
     }
 
     @Override
     public void broadcastPeerDisconnected() {
         Log.d("broadcastPeerDisconnected", "attempt to broadcast");
         peerStatusLiveData.postValue(ON_PEER_DISCONN);
+        serviceState.onPeerDisconnect();
     }
 
 
