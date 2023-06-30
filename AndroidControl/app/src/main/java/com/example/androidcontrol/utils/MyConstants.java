@@ -14,8 +14,10 @@ public abstract class MyConstants {
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
 
     // These are set using WindowManager from MainActivity
-    public static int VIDEO_PIXELS_WIDTH;
-    public static int VIDEO_PIXELS_HEIGHT;
+    public static int SCREEN_PIXELS_WIDTH;
+    public static int SCREEN_PIXELS_HEIGHT;
+    public static int PROJECTED_PIXELS_WIDTH;
+    public static int PROJECTED_PIXELS_HEIGHT;
     public static int DISPLAY_SURFACE_WIDTH;
     public static int DISPLAY_SURFACE_HEIGHT;
     public static final int FPS = 30;

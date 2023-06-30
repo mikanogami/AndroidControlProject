@@ -5,8 +5,8 @@ import static com.example.androidcontrol.model.ActivityStateHolder.AWAIT_SERVICE
 import static com.example.androidcontrol.model.ActivityStateHolder.SERVICE_BOUND;
 import static com.example.androidcontrol.model.ActivityStateHolder.LAUNCH_PERMISSIONS;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
-import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
-import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_HEIGHT;
+import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_WIDTH;
 
 import android.app.AlertDialog;
 import android.content.ComponentName;
@@ -139,8 +139,8 @@ public class MainActivity extends AppCompatActivity {
         mWindow = getWindow();
         WindowCompat.setDecorFitsSystemWindows(mWindow, false);
 
-        VIDEO_PIXELS_HEIGHT = displayMetrics.heightPixels;
-        VIDEO_PIXELS_WIDTH = displayMetrics.widthPixels;
+        SCREEN_PIXELS_HEIGHT = displayMetrics.heightPixels;
+        SCREEN_PIXELS_WIDTH = displayMetrics.widthPixels;
         mIsBound = false;
 
 

@@ -2,8 +2,8 @@ package com.example.androidcontrol.utils;
 
 import static com.example.androidcontrol.utils.MyConstants.DISPLAY_SURFACE_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.DISPLAY_SURFACE_WIDTH;
-import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
-import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_HEIGHT;
+import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_WIDTH;
 import static com.example.androidcontrol.utils.Utils.intToTwoBytes;
 import static com.example.androidcontrol.utils.Utils.twoBytesToInt;
 
@@ -52,8 +52,8 @@ public class UtilsControl {
             normVal = twoBytesToInt(Arrays.copyOfRange(bytes, numBytesPerVal * i, numBytesPerVal * (i+1))) / setSigFigs;
 
             // x-coords are at even indices (0 and 2), y-coords are at odd indices (1 and 3)
-            if(i % 2 == 0)  { mappedCoords[i] = VIDEO_PIXELS_WIDTH * normVal; }
-            else            { mappedCoords[i] = VIDEO_PIXELS_HEIGHT * (1 - normVal); }
+            if(i % 2 == 0)  { mappedCoords[i] = SCREEN_PIXELS_WIDTH * normVal; }
+            else            { mappedCoords[i] = SCREEN_PIXELS_HEIGHT * (1 - normVal); }
         }
 
         GestureDescription.StrokeDescription strokeDescription;

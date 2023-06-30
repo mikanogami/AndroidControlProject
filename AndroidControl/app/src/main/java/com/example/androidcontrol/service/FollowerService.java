@@ -23,6 +23,7 @@ import android.os.IBinder;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
@@ -30,6 +31,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.WindowCompat;
 
 import androidx.lifecycle.LifecycleService;
@@ -100,6 +102,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
                 }
             }
         };
+
         serviceState.getServiceState().observe(this, myObserver);
 
         Intent notificationIntent = getPackageManager()
@@ -127,7 +130,6 @@ public class FollowerService extends LifecycleService implements ServiceReposito
             mProjectionIntent = (Intent) intent.getParcelableExtra(M_PROJ_INTENT);
         }
         Log.d("onStartCommand: check mProjectionIntent", String.valueOf(mProjectionIntent));
-        //peerStatusLiveData.postValue(ON_PEER_DISCONN);
         serviceRepo.peerConnectionListener = this;
         serviceRepo.setMProjectionIntent(mProjectionIntent);
         serviceRepo.start();
@@ -147,7 +149,6 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         Icon imageIcon = Icon.createWithResource(this, R.drawable.do_not_disturb_24);
         switch (currentServiceState) {
             case SERVICE_NOT_READY:
-                serviceBubbleBinding.getRoot().setEnabled(false);
                 break;
             case SERVICE_READY:
                 imageIcon = Icon.createWithResource(this, R.drawable.play_arrow_24);
@@ -158,17 +159,28 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         serviceBubbleBinding.bubble1.setImageIcon(imageIcon);
     }
 
+    private GestureDetectorCompat mGestureDetector;
     public void createServiceBubble() {
         LayoutInflater layoutInflater = LayoutInflater.from(this);
         serviceBubbleBinding = BubbleLayoutBinding.inflate(layoutInflater);
-        serviceBubbleBinding.setHandler(new BubbleHandler(this));
         serviceBubbleBinding.bubble1.setBackground(getDrawable(R.drawable.bubble_background));
+        mGestureDetector = new GestureDetectorCompat(this, new BubbleHandler(this));
+
+        serviceBubbleBinding.bubble1.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                if (mGestureDetector.onTouchEvent(motionEvent)) {
+                    return true;
+                }
+                return false;
+            }
+        });
 
         mBubbleLayoutParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT);
         mBubbleLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
 
