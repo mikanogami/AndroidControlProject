@@ -1,4 +1,4 @@
-package com.example.androidcontrol.utils;
+package com.example.androidcontrol.model;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -10,7 +10,7 @@ public class ActivityStateHolder extends ViewModel {
     public static final int AWAIT_SERVICE_START = 2;
     public static final int SERVICE_BOUND = 3;
 
-    private final MutableLiveData<Integer> appState = new MutableLiveData<Integer>();
+    private final MutableLiveData<Integer> appState = new MutableLiveData<>();
     private static Integer currentAppState;
     public ActivityStateHolder() { setAppState(AWAIT_LAUNCH_PERMISSIONS); }
 

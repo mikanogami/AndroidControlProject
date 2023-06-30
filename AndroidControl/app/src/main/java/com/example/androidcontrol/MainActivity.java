@@ -1,9 +1,9 @@
 package com.example.androidcontrol;
 
-import static com.example.androidcontrol.utils.ActivityStateHolder.AWAIT_LAUNCH_PERMISSIONS;
-import static com.example.androidcontrol.utils.ActivityStateHolder.AWAIT_SERVICE_START;
-import static com.example.androidcontrol.utils.ActivityStateHolder.SERVICE_BOUND;
-import static com.example.androidcontrol.utils.ActivityStateHolder.LAUNCH_PERMISSIONS;
+import static com.example.androidcontrol.model.ActivityStateHolder.AWAIT_LAUNCH_PERMISSIONS;
+import static com.example.androidcontrol.model.ActivityStateHolder.AWAIT_SERVICE_START;
+import static com.example.androidcontrol.model.ActivityStateHolder.SERVICE_BOUND;
+import static com.example.androidcontrol.model.ActivityStateHolder.LAUNCH_PERMISSIONS;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.VIDEO_PIXELS_WIDTH;
@@ -36,7 +36,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.androidcontrol.databinding.ActivityMainBinding;
 import com.example.androidcontrol.service.FollowerService;
-import com.example.androidcontrol.utils.ActivityStateHolder;
+import com.example.androidcontrol.model.ActivityStateHolder;
 import com.example.androidcontrol.utils.UtilsPermissions;
 
 public class MainActivity extends AppCompatActivity {

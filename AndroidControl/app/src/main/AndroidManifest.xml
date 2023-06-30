@@ -40,16 +40,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".ui.BubbleActivity"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:label="Activity Bubble"
-            android:allowEmbedded="true"
-            android:resizeableActivity="true"
-            android:documentLaunchMode="always"
-            android:excludeFromRecents="true"
-            android:exported="true" >
-        </activity>
         <service
             android:name="com.example.androidcontrol.service.FollowerService"
             android:label="FollowerService"

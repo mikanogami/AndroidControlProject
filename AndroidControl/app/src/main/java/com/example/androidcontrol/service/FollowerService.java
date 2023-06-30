@@ -100,56 +100,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
                 }
             }
         };
-
         serviceState.getServiceState().observe(this, myObserver);
-
-        //onServiceAwaitPeer();
-
-        /*
-        Person bubbleHandler = new Person.Builder()
-        Person bubbleHandler = new Person.Builder()
-                .setImportant(true)
-                .setName(BUBBLE_SHORTCUT_ID)
-                .build();
-
-
-        ShortcutInfoCompat shortcut = new ShortcutInfoCompat.Builder(this, "shortcut-id")
-                .setLongLived(true)
-                .setShortLabel(bubbleHandler.getName())
-                .setIntent(new Intent(Intent.ACTION_DEFAULT))
-                .setPerson(bubbleHandler)
-                .build();
-
-        ShortcutManagerCompat.pushDynamicShortcut(this, shortcut);
-
-        Log.d("Build.VERSION", "bubblable");
-        //PendingIntent broadcast = PendingIntent.getBroadcast(this, 0, new Intent("test-message"), PendingIntent.FLAG_MUTABLE);
-        //NotificationCompat.Action action = new NotificationCompat.Action(null, null, broadcast);
-        PendingIntent bubbleIntent = PendingIntent.getActivity(this, 0, new Intent(this, BubbleActivity.class), PendingIntent.FLAG_IMMUTABLE);
-
-
-        Notification notification = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
-                .setSmallIcon(IconCompat.createWithResource(this, R.mipmap.ic_launcher_round))
-                .setStyle(new NotificationCompat.MessagingStyle(bubbleHandler))
-                .setBubbleMetadata(new NotificationCompat.BubbleMetadata.Builder(bubbleIntent,
-                        IconCompat.createWithResource(this, R.mipmap.ic_launcher_round))
-                        .setDesiredHeight(100)
-                        .build())
-                .setShortcutId(shortcut.getId())
-                .addPerson(bubbleHandler)
-                .setOngoing(true)
-                .build();
-
-                        Notification notification = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
-                .setTicker("Service is Running")
-                .setSmallIcon(R.drawable.ic_appstate_foreground)
-                .setContentTitle("Track title")
-                .setContentText("Artist - Album")
-                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle())
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .build();
-         */
 
         Intent notificationIntent = getPackageManager()
                 .getLaunchIntentForPackage(getPackageName())
@@ -281,15 +232,15 @@ public class FollowerService extends LifecycleService implements ServiceReposito
     }
 
     @Override
-    public void broadcastPeerConnected() {
-        Log.d("broadcastPeerConnected", "attempt to broadcast");
+    public void postPeerConnected() {
+        Log.d("postPeerConnected", "attempt to broadcast");
         peerStatusLiveData.postValue(ON_PEER_CONN);
         serviceState.onPeerConnect();
     }
 
     @Override
-    public void broadcastPeerDisconnected() {
-        Log.d("broadcastPeerDisconnected", "attempt to broadcast");
+    public void postPeerDisconnected() {
+        Log.d("postPeerDisconnected", "attempt to broadcast");
         peerStatusLiveData.postValue(ON_PEER_DISCONN);
         serviceState.onPeerDisconnect();
     }
