@@ -5,6 +5,8 @@ import static com.example.androidcontrol.model.ActivityStateHolder.AWAIT_SERVICE
 import static com.example.androidcontrol.model.ActivityStateHolder.SERVICE_BOUND;
 import static com.example.androidcontrol.model.ActivityStateHolder.LAUNCH_PERMISSIONS;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
+import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_HEIGHT;
+import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_WIDTH;
 import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_WIDTH;
 
@@ -102,6 +104,23 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
 
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getRealMetrics(displayMetrics);
+        mWindow = getWindow();
+        WindowCompat.setDecorFitsSystemWindows(mWindow, false);
+
+        // Size (pixels) of the android phone screen used to scale UI components
+        SCREEN_PIXELS_HEIGHT = displayMetrics.heightPixels;
+        SCREEN_PIXELS_WIDTH = displayMetrics.widthPixels;
+
+        // The resolution (pixels) we send via media projection
+        PROJECTED_PIXELS_HEIGHT = SCREEN_PIXELS_HEIGHT;
+        PROJECTED_PIXELS_WIDTH = SCREEN_PIXELS_WIDTH;
+
+        int buttonDiameter = (int) (SCREEN_PIXELS_WIDTH / 3.0);
+        binding.appStateButton.getLayoutParams().width = buttonDiameter;
+        binding.appStateButton.getLayoutParams().height = buttonDiameter;
+
         activityStateHolder = new ViewModelProvider(this).get(ActivityStateHolder.class);
         activityStateHolder.getAppState().observe(this, new Observer<Integer>() {
             @Override
@@ -134,15 +153,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getRealMetrics(displayMetrics);
-        mWindow = getWindow();
-        WindowCompat.setDecorFitsSystemWindows(mWindow, false);
 
-        SCREEN_PIXELS_HEIGHT = displayMetrics.heightPixels;
-        SCREEN_PIXELS_WIDTH = displayMetrics.widthPixels;
         mIsBound = false;
-
 
     }
 

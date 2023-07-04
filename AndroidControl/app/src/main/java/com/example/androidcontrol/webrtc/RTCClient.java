@@ -175,7 +175,7 @@ public class RTCClient {
         mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
         videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
 
-        videoCapturer.startCapture(SCREEN_PIXELS_WIDTH, SCREEN_PIXELS_HEIGHT, FPS);
+        videoCapturer.startCapture(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT, FPS);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
     }
 

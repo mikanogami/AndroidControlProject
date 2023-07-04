@@ -19,4 +19,10 @@
     <color name="bubble_button_background">#959595</color>
     <color name="bubble_button_await_peer_tint">@color/white</color>
     <color name="bubble_button_peer_connected_tint">@color/white</color>
+
+    <!-- Trash Bar Gradient Colours. -->
+    <color name="trash_bar_start_color">#BF606060</color>
+    <color name="trash_bar_center_color">#66606060</color>
+    <color name="trash_bar_end_color">#00606060</color>
+
 </resources>

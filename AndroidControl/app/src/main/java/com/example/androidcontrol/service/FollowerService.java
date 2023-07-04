@@ -8,23 +8,25 @@ import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_READY;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_RUNNING;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
+import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_WIDTH;
 
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
 import android.app.PendingIntent;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.PixelFormat;
 import android.graphics.drawable.Icon;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
@@ -40,9 +42,12 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 
 import com.example.androidcontrol.R;
+import com.example.androidcontrol.databinding.ActivityMainBinding;
 import com.example.androidcontrol.databinding.BubbleLayoutBinding;
+import com.example.androidcontrol.databinding.TrashLayoutBinding;
 import com.example.androidcontrol.model.ServiceStateHolder;
 import com.example.androidcontrol.ui.BubbleHandler;
+import com.example.androidcontrol.ui.WindowLayoutBuilder;
 
 
 public class FollowerService extends LifecycleService implements ServiceRepository.PeerConnectionListener {
@@ -51,6 +56,8 @@ public class FollowerService extends LifecycleService implements ServiceReposito
     private static WindowManager mWindowManager;
     public BubbleLayoutBinding serviceBubbleBinding;
     public WindowManager.LayoutParams mBubbleLayoutParams;
+    public TrashLayoutBinding trashLayoutBinding;
+    public WindowManager.LayoutParams mTrashLayoutParams;
     private final MutableLiveData<String> peerStatusLiveData = new MutableLiveData<String>();
     private ServiceRepository serviceRepo = new ServiceRepository(this);
     private final IBinder mBinder = new FollowerBinder();
@@ -62,7 +69,6 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         }
         public LiveData<String> getPeerStatus() { return peerStatusLiveData; }
     }
-
 
     @Nullable
     @Override
@@ -82,6 +88,9 @@ public class FollowerService extends LifecycleService implements ServiceReposito
                 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
          */
+
+        createServiceBubble();
+        createTrashBarView();
 
         serviceState = new ServiceStateHolder();
         Observer<Integer> myObserver = new Observer<Integer>() {
@@ -138,10 +147,8 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         return mBinder;
     }
 
+
     private void updateBubbleButtonUI(@NonNull Integer currentServiceState) {
-        if (serviceBubbleBinding == null) {
-            createServiceBubble();
-        }
 
         serviceBubbleBinding.bubble1.clearColorFilter();
         serviceBubbleBinding.getRoot().setVisibility(View.VISIBLE);
@@ -161,9 +168,16 @@ public class FollowerService extends LifecycleService implements ServiceReposito
 
     private GestureDetectorCompat mGestureDetector;
     public void createServiceBubble() {
-        LayoutInflater layoutInflater = LayoutInflater.from(this);
-        serviceBubbleBinding = BubbleLayoutBinding.inflate(layoutInflater);
-        serviceBubbleBinding.bubble1.setBackground(getDrawable(R.drawable.bubble_background));
+        serviceBubbleBinding = BubbleLayoutBinding.inflate(LayoutInflater.from(this));
+        mBubbleLayoutParams = WindowLayoutBuilder.buildBubbleWindowLayoutParams();
+        getWindowManager().addView(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
+
+        int iconDiameter = (int) (SCREEN_PIXELS_WIDTH / 6.0);
+        Log.d("IconDiameter", String.valueOf(iconDiameter));
+        serviceBubbleBinding.getRoot().getLayoutParams().width = iconDiameter;
+        serviceBubbleBinding.getRoot().getLayoutParams().height = iconDiameter;
+        getWindowManager().updateViewLayout(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
+
         mGestureDetector = new GestureDetectorCompat(this, new BubbleHandler(this));
 
         serviceBubbleBinding.bubble1.setOnTouchListener(new View.OnTouchListener() {
@@ -176,16 +190,22 @@ public class FollowerService extends LifecycleService implements ServiceReposito
             }
         });
 
-        mBubbleLayoutParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT);
-        mBubbleLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
 
-        getWindowManager().addView(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
+
     }
+
+    private void createTrashBarView() {
+        trashLayoutBinding = TrashLayoutBinding.inflate(LayoutInflater.from(this));
+        mTrashLayoutParams = WindowLayoutBuilder.buildTrashWindowLayoutParams();
+        getWindowManager().addView(trashLayoutBinding.getRoot(), mTrashLayoutParams);
+
+        int iconDiameter = (int) (SCREEN_PIXELS_WIDTH / 6.0);
+        trashLayoutBinding.trashIcon1.getLayoutParams().width = iconDiameter;
+        trashLayoutBinding.trashIcon1.getLayoutParams().height = iconDiameter;
+        trashLayoutBinding.trashBar.getLayoutParams().height = 2 * iconDiameter;
+        getWindowManager().updateViewLayout(trashLayoutBinding.getRoot(), mTrashLayoutParams);
+    }
+
 
     private void destroyServiceBubble() {
         getWindowManager().removeView(serviceBubbleBinding.getRoot());
@@ -200,6 +220,13 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         return mWindowManager;
     }
 
+    public void reopenApp() {
+        Intent intent = getPackageManager()
+                .getLaunchIntentForPackage(getPackageName())
+                .setPackage(null)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startActivity(intent);
+    }
 
     private void createNotificationChannel() {
         NotificationChannel serviceChannel = new NotificationChannel(
@@ -257,6 +284,18 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         serviceState.onPeerDisconnect();
     }
 
-
+    private void notifyEndService() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.end_service_hint)
+                .setPositiveButton(R.string.end_service_button, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        stopSelf();
+                    }
+                })
+                .setCancelable(true)
+                .create()
+                .show();
+    }
 
 }

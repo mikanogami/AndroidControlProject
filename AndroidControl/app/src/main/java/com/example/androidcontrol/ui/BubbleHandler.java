@@ -14,6 +14,8 @@ import android.view.WindowManager;
 import android.widget.Scroller;
 
 import androidx.annotation.NonNull;
+import androidx.dynamicanimation.animation.DynamicAnimation;
+import androidx.dynamicanimation.animation.FlingAnimation;
 
 import com.example.androidcontrol.service.FollowerService;
 
@@ -24,6 +26,7 @@ public class BubbleHandler extends GestureDetector.SimpleOnGestureListener {
     private float offsetY;
     private Path scrollPath;
     private ObjectAnimator animator;
+    WindowManager.LayoutParams params;
     public BubbleHandler(FollowerService followerService) {
         this.service = followerService;
     }
@@ -31,19 +34,21 @@ public class BubbleHandler extends GestureDetector.SimpleOnGestureListener {
     @Override
     public boolean onDown(MotionEvent event) {
         Log.d(TAG,"onDown: " + event.toString());
-        WindowManager.LayoutParams params = (WindowManager.LayoutParams) service.serviceBubbleBinding.getRoot().getLayoutParams();
+        params = (WindowManager.LayoutParams) service.serviceBubbleBinding.getRoot().getLayoutParams();
         offsetX = params.x - event.getRawX();
         offsetY = params.y - event.getRawY();
-        //scrollPath = new Path();
-        //scrollPath.moveTo(params.x, params.y);
-        //animator = ObjectAnimator.ofFloat(service.serviceBubbleBinding.getRoot(), "x", "y", scrollPath);
-        //animator.start();
         return true;
     }
     @Override
-    public boolean onSingleTapUp(MotionEvent event) {
-        Log.d(TAG, "onSingleTapUp: " + event.toString());
+    public boolean onSingleTapConfirmed(MotionEvent event) {
+        Log.d(TAG, "onSingleTapUpConfirmed: " + event.toString());
         service.onBubbleClick();
+        return true;
+    }
+    @Override
+    public boolean onDoubleTap(MotionEvent event) {
+        Log.d(TAG, "onDoubleTap: " + event.toString());
+        service.reopenApp();
         return true;
     }
     @Override
@@ -51,26 +56,18 @@ public class BubbleHandler extends GestureDetector.SimpleOnGestureListener {
                             float distanceY) {
         //Log.d(TAG, "onScroll: " + event1.toString() + event2.toString());
 
-        service.mBubbleLayoutParams.x = (int) (offsetX + event2.getRawX());
-        service.mBubbleLayoutParams.y = (int) (offsetY + event2.getRawY());
-        service.getWindowManager().updateViewLayout(service.serviceBubbleBinding.getRoot(), service.mBubbleLayoutParams);
-
-        Log.d(TAG, "onScroll: " + event2.getRawX() + " " + event2.getRawY());
-        //scrollPath.lineTo(event2.getRawX(), event2.getRawY());
-        //scrollPath.offset(distanceX, distanceY);
-
-        //animator.setDuration(event2.getEventTime() - event1.getEventTime());
-
-
-
+        params.x = (int) (offsetX + event2.getRawX());
+        params.y = (int) (offsetY + event2.getRawY());
+        service.getWindowManager().updateViewLayout(service.serviceBubbleBinding.getRoot(), params);
 
         return super.onScroll(event1, event2, distanceX, distanceY);
     }
     @Override
     public boolean onFling(MotionEvent event1, MotionEvent event2,
                            float velocityX, float velocityY) {
-        Log.d(TAG, "onFling: " + event1.toString() + event2.toString());
+        Log.d(TAG, "onFling: " + velocityX + " " + velocityY);
         //mScroller.fling((int) event1.getRawX(),(int) event1.getRawY(), (int) velocityX,(int) velocityY, 0, 0, SCREEN_PIXELS_WIDTH, SCREEN_PIXELS_HEIGHT);
+
         return super.onFling(event1, event2, velocityX, velocityY);
     }
 
