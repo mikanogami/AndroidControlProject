@@ -16,7 +16,8 @@
             android:id="@+id/trash_icon_1"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            android:background="@drawable/baseline_delete_24"
+            android:background="@drawable/background_trash_icon"
+            android:src="@drawable/baseline_delete_24"
             android:layout_gravity="center"/>
 
     </androidx.appcompat.widget.LinearLayoutCompat>

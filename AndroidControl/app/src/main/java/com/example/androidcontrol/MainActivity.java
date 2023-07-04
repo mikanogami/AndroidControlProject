@@ -4,11 +4,12 @@ import static com.example.androidcontrol.model.ActivityStateHolder.AWAIT_LAUNCH_
 import static com.example.androidcontrol.model.ActivityStateHolder.AWAIT_SERVICE_START;
 import static com.example.androidcontrol.model.ActivityStateHolder.SERVICE_BOUND;
 import static com.example.androidcontrol.model.ActivityStateHolder.LAUNCH_PERMISSIONS;
+import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_WIDTH;
-import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_HEIGHT;
-import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_HEIGHT;
+import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_WIDTH;
 
 import android.app.AlertDialog;
 import android.content.ComponentName;
@@ -104,20 +105,29 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
 
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getRealMetrics(displayMetrics);
+        DisplayMetrics realDisplayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getRealMetrics(realDisplayMetrics);
+        // Size (pixels) of the android phone screen used to scale UI components
+        FULL_SCREEN_PIXELS_HEIGHT = realDisplayMetrics.heightPixels;
+        FULL_SCREEN_PIXELS_WIDTH = realDisplayMetrics.widthPixels;
+
+        // The resolution (pixels) we send via media projection
+        PROJECTED_PIXELS_HEIGHT = FULL_SCREEN_PIXELS_HEIGHT;
+        PROJECTED_PIXELS_WIDTH = FULL_SCREEN_PIXELS_WIDTH;
+
+        DisplayMetrics appDisplayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(appDisplayMetrics);
+        APP_SCREEN_PIXELS_HEIGHT = appDisplayMetrics.heightPixels;
+        Log.d("MainBinding", String.valueOf(appDisplayMetrics.heightPixels));
+
         mWindow = getWindow();
         WindowCompat.setDecorFitsSystemWindows(mWindow, false);
 
-        // Size (pixels) of the android phone screen used to scale UI components
-        SCREEN_PIXELS_HEIGHT = displayMetrics.heightPixels;
-        SCREEN_PIXELS_WIDTH = displayMetrics.widthPixels;
 
-        // The resolution (pixels) we send via media projection
-        PROJECTED_PIXELS_HEIGHT = SCREEN_PIXELS_HEIGHT;
-        PROJECTED_PIXELS_WIDTH = SCREEN_PIXELS_WIDTH;
 
-        int buttonDiameter = (int) (SCREEN_PIXELS_WIDTH / 3.0);
+
+
+        int buttonDiameter = (int) (FULL_SCREEN_PIXELS_WIDTH / 3.0);
         binding.appStateButton.getLayoutParams().width = buttonDiameter;
         binding.appStateButton.getLayoutParams().height = buttonDiameter;
 
@@ -152,10 +162,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-
         mIsBound = false;
-
     }
 
     private void unbindFromService() {
@@ -203,7 +210,6 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("message-id", R.string.accessibility_hint);
             launchPermissionRequest(intent);
         }
-
     }
 
     private void launchDrawOverlayPermission() {

@@ -22,7 +22,8 @@
 
     <!-- Trash Bar Gradient Colours. -->
     <color name="trash_bar_start_color">#BF606060</color>
-    <color name="trash_bar_center_color">#66606060</color>
+    <color name="trash_bar_center_color">#99606060</color>
     <color name="trash_bar_end_color">#00606060</color>
+    <color name="trash_bar_on_entered">#D10000</color>
 
 </resources>

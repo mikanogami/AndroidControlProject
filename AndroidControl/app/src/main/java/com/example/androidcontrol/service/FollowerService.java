@@ -1,14 +1,17 @@
 package com.example.androidcontrol.service;
 
+import static android.view.View.GONE;
 import static com.example.androidcontrol.MainActivity.ON_PEER_CONN;
 import static com.example.androidcontrol.MainActivity.ON_PEER_DISCONN;
 import static com.example.androidcontrol.MainActivity.mWindow;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_NOT_READY;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_READY;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_RUNNING;
+import static com.example.androidcontrol.utils.MyConstants.BUBBLE_ICON_RADIUS;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
-import static com.example.androidcontrol.utils.MyConstants.SCREEN_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.TRASH_ICON_SIDE_LEN;
 
 import android.app.AlertDialog;
 import android.app.Notification;
@@ -24,9 +27,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
@@ -42,7 +43,6 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 
 import com.example.androidcontrol.R;
-import com.example.androidcontrol.databinding.ActivityMainBinding;
 import com.example.androidcontrol.databinding.BubbleLayoutBinding;
 import com.example.androidcontrol.databinding.TrashLayoutBinding;
 import com.example.androidcontrol.model.ServiceStateHolder;
@@ -56,7 +56,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
     private static WindowManager mWindowManager;
     public BubbleLayoutBinding serviceBubbleBinding;
     public WindowManager.LayoutParams mBubbleLayoutParams;
-    public TrashLayoutBinding trashLayoutBinding;
+    public TrashLayoutBinding trashBarBinding;
     public WindowManager.LayoutParams mTrashLayoutParams;
     private final MutableLiveData<String> peerStatusLiveData = new MutableLiveData<String>();
     private ServiceRepository serviceRepo = new ServiceRepository(this);
@@ -77,20 +77,9 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         Log.d("BubbleService", "onBind");
         WindowCompat.setDecorFitsSystemWindows(mWindow, false);
         createNotificationChannel();
-        /*
-        Intent notificationIntent = getPackageManager()
-                .getLaunchIntentForPackage(getPackageName())
-                .setPackage(null)
-                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
-
-         */
-
-        createServiceBubble();
         createTrashBarView();
+        createServiceBubble();
 
         serviceState = new ServiceStateHolder();
         Observer<Integer> myObserver = new Observer<Integer>() {
@@ -172,40 +161,81 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         mBubbleLayoutParams = WindowLayoutBuilder.buildBubbleWindowLayoutParams();
         getWindowManager().addView(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
 
-        int iconDiameter = (int) (SCREEN_PIXELS_WIDTH / 6.0);
-        Log.d("IconDiameter", String.valueOf(iconDiameter));
-        serviceBubbleBinding.getRoot().getLayoutParams().width = iconDiameter;
-        serviceBubbleBinding.getRoot().getLayoutParams().height = iconDiameter;
+        BUBBLE_ICON_RADIUS = (int) (FULL_SCREEN_PIXELS_WIDTH / 12.0);
+        Log.d("IconRadius", String.valueOf(BUBBLE_ICON_RADIUS));
+        serviceBubbleBinding.getRoot().getLayoutParams().width = 2 * BUBBLE_ICON_RADIUS;
+        serviceBubbleBinding.getRoot().getLayoutParams().height = 2 * BUBBLE_ICON_RADIUS;
         getWindowManager().updateViewLayout(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
 
-        mGestureDetector = new GestureDetectorCompat(this, new BubbleHandler(this));
+        serviceBubbleBinding.setHandler(new BubbleHandler(this));
+    }
 
-        serviceBubbleBinding.bubble1.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (mGestureDetector.onTouchEvent(motionEvent)) {
-                    return true;
-                }
-                return false;
-            }
-        });
+    public void enableBubbleDragAndDrop() {
+        trashBarBinding.getRoot().setVisibility(View.VISIBLE);
+        trashBarBinding.getRoot().setEnabled(true);
+    }
 
+    public void dragTrashEnterDetected() {
+        trashBarBinding.trashIcon1.clearColorFilter();
+        trashBarBinding.trashIcon1.getBackground().clearColorFilter();
+        int tintColor = getResources().getColor(R.color.trash_bar_on_entered, getTheme());
+        trashBarBinding.trashIcon1.getBackground().setTint(tintColor);
+        trashBarBinding.trashIcon1.setColorFilter(tintColor);
+    }
 
+    public void dragTrashExitDetected() {
+        trashBarBinding.trashIcon1.clearColorFilter();
+        trashBarBinding.trashIcon1.getBackground().clearColorFilter();
+        int tintColor = getResources().getColor(R.color.white, getTheme());
+        trashBarBinding.trashIcon1.getBackground().setTint(tintColor);
+        trashBarBinding.trashIcon1.setColorFilter(tintColor);
+    }
 
+    public void disableBubbleDragAndDrop() {
+        trashBarBinding.getRoot().setVisibility(View.GONE);
+        trashBarBinding.getRoot().setEnabled(false);
     }
 
     private void createTrashBarView() {
-        trashLayoutBinding = TrashLayoutBinding.inflate(LayoutInflater.from(this));
+        trashBarBinding = TrashLayoutBinding.inflate(LayoutInflater.from(this));
         mTrashLayoutParams = WindowLayoutBuilder.buildTrashWindowLayoutParams();
-        getWindowManager().addView(trashLayoutBinding.getRoot(), mTrashLayoutParams);
+        getWindowManager().addView(trashBarBinding.getRoot(), mTrashLayoutParams);
 
-        int iconDiameter = (int) (SCREEN_PIXELS_WIDTH / 6.0);
-        trashLayoutBinding.trashIcon1.getLayoutParams().width = iconDiameter;
-        trashLayoutBinding.trashIcon1.getLayoutParams().height = iconDiameter;
-        trashLayoutBinding.trashBar.getLayoutParams().height = 2 * iconDiameter;
-        getWindowManager().updateViewLayout(trashLayoutBinding.getRoot(), mTrashLayoutParams);
+        TRASH_ICON_SIDE_LEN = 2 * (int) (FULL_SCREEN_PIXELS_WIDTH / 12.0); // ensures divisible by 2
+        trashBarBinding.trashIcon1.getLayoutParams().width = TRASH_ICON_SIDE_LEN;
+        trashBarBinding.trashIcon1.getLayoutParams().height = TRASH_ICON_SIDE_LEN;
+        trashBarBinding.trashBar.getLayoutParams().height = 2 * TRASH_ICON_SIDE_LEN;
+        getWindowManager().updateViewLayout(trashBarBinding.getRoot(), mTrashLayoutParams);
+
+        // BubbleHandler enables trash bar during bubble onScroll
+        /*
+        trashBarBinding.trashIcon1.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View view, DragEvent dragEvent) {
+                Log.d("DragEvent", String.valueOf(dragEvent.getAction()));
+                int tintColor;
+                switch (dragEvent.getAction()) {
+                    case ACTION_DRAG_ENTERED:
+                        trashBarBinding.trashIcon1.clearColorFilter();
+                        tintColor = getResources().getColor(R.color.trash_bar_on_entered, getTheme());
+                        trashBarBinding.trashIcon1.getForeground().setTint(tintColor);
+                        break;
+                    case ACTION_DRAG_EXITED:
+                        trashBarBinding.trashIcon1.clearColorFilter();
+                        tintColor = getResources().getColor(R.color.white, getTheme());
+                        trashBarBinding.trashIcon1.getForeground().setTint(tintColor);
+                        break;
+                    case ACTION_DROP:
+
+                }
+                return true;
+            }
+        });
+
+         */
+        trashBarBinding.getRoot().setVisibility(GONE);
+        trashBarBinding.getRoot().setEnabled(false);
     }
-
 
     private void destroyServiceBubble() {
         getWindowManager().removeView(serviceBubbleBinding.getRoot());
@@ -273,29 +303,30 @@ public class FollowerService extends LifecycleService implements ServiceReposito
     @Override
     public void postPeerConnected() {
         Log.d("postPeerConnected", "attempt to broadcast");
-        peerStatusLiveData.postValue(ON_PEER_CONN);
         serviceState.onPeerConnect();
     }
 
     @Override
     public void postPeerDisconnected() {
         Log.d("postPeerDisconnected", "attempt to broadcast");
-        peerStatusLiveData.postValue(ON_PEER_DISCONN);
         serviceState.onPeerDisconnect();
     }
 
-    private void notifyEndService() {
+    public void notifyEndService() {
+        stopForeground(true);
+        /*
         new AlertDialog.Builder(this)
                 .setMessage(R.string.end_service_hint)
                 .setPositiveButton(R.string.end_service_button, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        stopSelf();
+
                     }
                 })
                 .setCancelable(true)
                 .create()
                 .show();
+         */
     }
 
 }
