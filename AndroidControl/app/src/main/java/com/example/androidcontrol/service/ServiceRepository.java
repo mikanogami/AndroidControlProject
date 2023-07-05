@@ -1,6 +1,5 @@
 package com.example.androidcontrol.service;
 
-import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
 import static com.example.androidcontrol.utils.MyConstants.PEER_CONNECTED;
 import static com.example.androidcontrol.utils.MyConstants.PEER_DISCONNECTED;
 import static com.example.androidcontrol.utils.MyConstants.PEER_UNAVAILABLE;
@@ -15,26 +14,22 @@ import com.example.androidcontrol.webrtc.SocketClient;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.webrtc.VideoTrack;
 
 import java.util.Arrays;
 
 public class ServiceRepository implements SocketClient.SocketListener, RTCClient.RTCListener {
     private static final String TAG = "ServiceRepository";
-    private static final String IceSeperatorChar = "|";
-    public VideoRenderListener videoRenderListener;
+    private static final String IceSeparatorChar = "|";
     public PeerConnectionListener peerConnectionListener;
     Context context;
-    String clientKey;
     protected SocketClient socketClient;
     public RTCClient rtcClient;
-    public boolean isPaused;
+    public boolean screenControlEnabled;
 
-    public ServiceRepository(Context context, String clientKey) {
+    public ServiceRepository(Context context) {
         this.context = context;
-        this.clientKey = clientKey;
         isPaused = false;
-        socketClient = new SocketClient(clientKey);
+        socketClient = new SocketClient(FOL_CLIENT_KEY);
         rtcClient = new RTCClient(context);
 
         socketClient.listener = this;
@@ -52,18 +47,14 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     }
 
     public void start() {
-        socketClient.connectToSignallingServer();
         initPeerConnection();
-        initStreamAndControl();
+        socketClient.connectToSignallingServer();
     }
 
     public void initPeerConnection() {
         rtcClient.initializePeerConnectionFactory();
         rtcClient.initializePeerConnections();
-    }
-
-    public void initStreamAndControl() {
-        rtcClient.createVideoTrackFromCameraAndShowIt();
+        rtcClient.createVideoTrackFromScreenCapture();
         rtcClient.startStreamingVideo();
         rtcClient.createControlDataChannel();
     }
@@ -73,17 +64,17 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         if (message.equals(PEER_CONNECTED)) {
             Log.d("peer_status", "connected");
             socketClient.enableDoEncrypt();
-            initStreamAndControl();
-            //initPeerConnection();
             handleStartSignal();
-            peerConnectionListener.broadcastPeerConnected();
+            peerConnectionListener.postPeerConnected();
+            return;
         } else if (message.equals(PEER_DISCONNECTED)) {
             Log.d("peer_status", "disconnected");
             socketClient.disableDoEncrypt();
-            peerConnectionListener.broadcastPeerDisconnected();
+            peerConnectionListener.postPeerDisconnected();
+            return;
         } else if (message.equals(PEER_UNAVAILABLE)) {
             Log.d("peer_status", "unavailable");
-            peerConnectionListener.broadcastPeerDisconnected();
+            peerConnectionListener.postPeerDisconnected();
         } else {
             JSONObject msgJson = new JSONObject(message);
             int messageType = msgJson.getInt("MessageType");
@@ -124,7 +115,6 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     public void handleIceCandidateMessage(String sdp, int sdpMLineIndex, String sdpMid) {
         rtcClient.handleIceCandidateMessage(sdp, sdpMLineIndex, sdpMid);
     }
-
     public void handleDefaultMessage(String msg) {
         Log.d(TAG, msg);
     }
@@ -138,20 +128,18 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     public void sendCandidateToSocket(String sdp, int sdpMLineIndex, String sdpMid) {
         String content = sdp
-                + IceSeperatorChar + String.valueOf(sdpMLineIndex)
-                + IceSeperatorChar + sdpMid;
+                + IceSeparatorChar + String.valueOf(sdpMLineIndex)
+                + IceSeparatorChar + sdpMid;
         sendToSocket(3, content);
     }
 
     @Override
     public void renderControlEvent(byte[] eventBytes) {
-
         if (!isPaused) {
             Intent intent = new Intent(context, ControlService.class);
             intent.putExtra("event", eventBytes);
             Log.d(TAG, String.valueOf(Utils.bytesToFloat(eventBytes)) + " "
                     + String.valueOf(Utils.bytesToFloat(Arrays.copyOfRange(eventBytes, 4, 8))));
-
 
             context.startService(intent);
         }
@@ -163,7 +151,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         try {
             message.put("MessageType", type);
             message.put("Data", content);
-            message.put("IceDataSeparator", IceSeperatorChar);
+            message.put("IceDataSeparator", IceSeparatorChar);
             socketClient.sendMessage(String.valueOf(message));
             Log.d(TAG, "onIceCandidate: sending candidate " + message);
         } catch (JSONException e) {
@@ -171,28 +159,9 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         }
     }
 
-    @Override
-    public void renderLocalVideoTrack(VideoTrack vTrack) {
-        if (videoRenderListener != null) {
-            videoRenderListener.renderLocalVideoTrack(vTrack);
-
-        }
-    }
-    @Override
-    public void renderRemoteVideoTrack(VideoTrack vTrack) {
-        if (videoRenderListener != null) {
-            videoRenderListener.renderRemoteVideoTrack(vTrack);
-        }
-    }
-
-    public interface VideoRenderListener {
-        void renderLocalVideoTrack(VideoTrack vTrack);
-        void renderRemoteVideoTrack(VideoTrack vTrack);
-    }
-
     public interface PeerConnectionListener {
-        public void broadcastPeerConnected();
-        public void broadcastPeerDisconnected();
+        public void postPeerConnected();
+        public void postPeerDisconnected();
     }
 
 }

@@ -1,125 +1,116 @@
 package com.example.androidcontrol.service;
 
-import static com.example.androidcontrol.MainActivity.ON_PEER_CONN;
-import static com.example.androidcontrol.MainActivity.ON_PEER_DISCONN;
+import static android.view.View.GONE;
 import static com.example.androidcontrol.MainActivity.mWindow;
-import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
+import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_NOT_READY;
+import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_READY;
+import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_RUNNING;
+import static com.example.androidcontrol.utils.MyConstants.BUBBLE_ICON_RADIUS;
+import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
+import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_HEIGHT;
+import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.TRASH_ICON_SIDE_LEN;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Intent;
 import android.graphics.drawable.Icon;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.WindowCompat;
+
+import androidx.lifecycle.LifecycleService;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import com.example.androidcontrol.R;
 import com.example.androidcontrol.databinding.BubbleLayoutBinding;
+import com.example.androidcontrol.databinding.TrashLayoutBinding;
+import com.example.androidcontrol.model.ServiceStateHolder;
+import com.example.androidcontrol.ui.BubbleHandler;
+import com.example.androidcontrol.ui.WindowLayoutBuilder;
 
 
-public class FollowerService extends Service implements ServiceRepository.PeerConnectionListener {
+public class FollowerService extends LifecycleService implements ServiceRepository.PeerConnectionListener {
 
     private static final String TAG = "FollowerService";
     private static WindowManager mWindowManager;
-    public BubbleLayoutBinding mBubbleLayoutBinding;
+    public BubbleLayoutBinding serviceBubbleBinding;
     public WindowManager.LayoutParams mBubbleLayoutParams;
-    private final MutableLiveData<String> peerStatusLiveData = new MutableLiveData<String>();
-    private ServiceRepository serviceRepo = new ServiceRepository(this, FOL_CLIENT_KEY);
+    public TrashLayoutBinding trashBarBinding;
+    public WindowManager.LayoutParams mTrashLayoutParams;
+    private final MutableLiveData<String> notifyEndService = new MutableLiveData<String>();
+    private ServiceRepository serviceRepo = new ServiceRepository(this);
     private final IBinder mBinder = new FollowerBinder();
-
+    private static ServiceStateHolder serviceState;
 
     public class FollowerBinder extends Binder {
         public FollowerService getService() {
             return FollowerService.this;
         }
-        public LiveData<String> getPeerStatus() { return peerStatusLiveData; }
+        public LiveData<String> getNotifyEndService() { return notifyEndService; }
     }
-
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        super.onBind(intent);
         Log.d("BubbleService", "onBind");
+        DisplayMetrics realDisplayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getRealMetrics(realDisplayMetrics);
+        // Size (pixels) of the android phone screen used to scale UI components
+        FULL_SCREEN_PIXELS_HEIGHT = realDisplayMetrics.heightPixels;
+
+        // The resolution (pixels) we send via media projection
+        PROJECTED_PIXELS_HEIGHT = (int) FULL_SCREEN_PIXELS_HEIGHT / 2;
+        PROJECTED_PIXELS_WIDTH = (int) APP_SCREEN_PIXELS_WIDTH / 2;
+
         WindowCompat.setDecorFitsSystemWindows(mWindow, false);
         createNotificationChannel();
-        /*
-        Intent notificationIntent = getPackageManager()
-                .getLaunchIntentForPackage(getPackageName())
-                .setPackage(null)
-                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+        createTrashBarView();
+        createServiceBubble();
 
-         */
+        serviceState = new ServiceStateHolder();
+        Observer<Integer> myObserver = new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer data) {
+                Log.d("onServiceStateChanged", String.valueOf(data));
+                updateBubbleButtonUI(data);
+                switch (data) {
+                    case SERVICE_NOT_READY:
+                        onServiceNotReady();
+                        break;
+                    case SERVICE_READY:
+                        onServiceReady();
+                        break;
+                    case SERVICE_RUNNING:
+                        onServiceRunning();
+                        break;
+                }
+            }
+        };
 
-
-
-        //onServiceAwaitPeer();
-
-        /*
-        Person bubbleHandler = new Person.Builder()
-        Person bubbleHandler = new Person.Builder()
-                .setImportant(true)
-                .setName(BUBBLE_SHORTCUT_ID)
-                .build();
-
-
-        ShortcutInfoCompat shortcut = new ShortcutInfoCompat.Builder(this, "shortcut-id")
-                .setLongLived(true)
-                .setShortLabel(bubbleHandler.getName())
-                .setIntent(new Intent(Intent.ACTION_DEFAULT))
-                .setPerson(bubbleHandler)
-                .build();
-
-        ShortcutManagerCompat.pushDynamicShortcut(this, shortcut);
-
-        Log.d("Build.VERSION", "bubblable");
-        //PendingIntent broadcast = PendingIntent.getBroadcast(this, 0, new Intent("test-message"), PendingIntent.FLAG_MUTABLE);
-        //NotificationCompat.Action action = new NotificationCompat.Action(null, null, broadcast);
-        PendingIntent bubbleIntent = PendingIntent.getActivity(this, 0, new Intent(this, BubbleActivity.class), PendingIntent.FLAG_IMMUTABLE);
-
-
-        Notification notification = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
-                .setSmallIcon(IconCompat.createWithResource(this, R.mipmap.ic_launcher_round))
-                .setStyle(new NotificationCompat.MessagingStyle(bubbleHandler))
-                .setBubbleMetadata(new NotificationCompat.BubbleMetadata.Builder(bubbleIntent,
-                        IconCompat.createWithResource(this, R.mipmap.ic_launcher_round))
-                        .setDesiredHeight(100)
-                        .build())
-                .setShortcutId(shortcut.getId())
-                .addPerson(bubbleHandler)
-                .setOngoing(true)
-                .build();
-
-                        Notification notification = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
-                .setTicker("Service is Running")
-                .setSmallIcon(R.drawable.ic_appstate_foreground)
-                .setContentTitle("Track title")
-                .setContentText("Artist - Album")
-                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle())
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .build();
-         */
-
+        serviceState.getServiceState().observe(this, myObserver);
 
         Intent notificationIntent = getPackageManager()
                 .getLaunchIntentForPackage(getPackageName())
@@ -146,12 +137,126 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
             mProjectionIntent = (Intent) intent.getParcelableExtra(M_PROJ_INTENT);
         }
         Log.d("onStartCommand: check mProjectionIntent", String.valueOf(mProjectionIntent));
-        //peerStatusLiveData.postValue(ON_PEER_DISCONN);
         serviceRepo.peerConnectionListener = this;
         serviceRepo.setMProjectionIntent(mProjectionIntent);
         serviceRepo.start();
 
+
         return mBinder;
+    }
+
+
+    private void updateBubbleButtonUI(@NonNull Integer currentServiceState) {
+
+        serviceBubbleBinding.bubble1.clearColorFilter();
+        serviceBubbleBinding.getRoot().setVisibility(View.VISIBLE);
+        serviceBubbleBinding.getRoot().setEnabled(true);
+        Icon imageIcon = Icon.createWithResource(this, R.drawable.do_not_disturb_24);
+        switch (currentServiceState) {
+            case SERVICE_NOT_READY:
+                break;
+            case SERVICE_READY:
+                imageIcon = Icon.createWithResource(this, R.drawable.play_arrow_24);
+                break;
+            case SERVICE_RUNNING:
+                imageIcon = Icon.createWithResource(this, R.drawable.pause_24);
+        }
+        serviceBubbleBinding.bubble1.setImageIcon(imageIcon);
+    }
+
+    private GestureDetectorCompat mGestureDetector;
+    public void createServiceBubble() {
+        serviceBubbleBinding = BubbleLayoutBinding.inflate(LayoutInflater.from(this));
+        mBubbleLayoutParams = WindowLayoutBuilder.buildBubbleWindowLayoutParams();
+        getWindowManager().addView(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
+
+        BUBBLE_ICON_RADIUS = (int) (APP_SCREEN_PIXELS_WIDTH / 12.0);
+        Log.d("IconRadius", String.valueOf(BUBBLE_ICON_RADIUS));
+        serviceBubbleBinding.getRoot().getLayoutParams().width = 2 * BUBBLE_ICON_RADIUS;
+        serviceBubbleBinding.getRoot().getLayoutParams().height = 2 * BUBBLE_ICON_RADIUS;
+        getWindowManager().updateViewLayout(serviceBubbleBinding.getRoot(), mBubbleLayoutParams);
+
+        serviceBubbleBinding.setHandler(new BubbleHandler(this));
+    }
+
+    public void enableBubbleDragAndDrop() {
+        trashBarBinding.getRoot().setVisibility(View.VISIBLE);
+        trashBarBinding.getRoot().setEnabled(true);
+    }
+
+    public void dragTrashEnterDetected() {
+        trashBarBinding.trashIcon1.clearColorFilter();
+        trashBarBinding.trashIcon1.getBackground().clearColorFilter();
+        int tintColor = getResources().getColor(R.color.trash_bar_on_entered, getTheme());
+        trashBarBinding.trashIcon1.getBackground().setTint(tintColor);
+        trashBarBinding.trashIcon1.setColorFilter(tintColor);
+    }
+
+    public void dragTrashExitDetected() {
+        trashBarBinding.trashIcon1.clearColorFilter();
+        trashBarBinding.trashIcon1.getBackground().clearColorFilter();
+        int tintColor = getResources().getColor(R.color.white, getTheme());
+        trashBarBinding.trashIcon1.getBackground().setTint(tintColor);
+        trashBarBinding.trashIcon1.setColorFilter(tintColor);
+    }
+
+    public void disableBubbleDragAndDrop() {
+        dragTrashExitDetected();
+        trashBarBinding.getRoot().setVisibility(View.GONE);
+        trashBarBinding.getRoot().setEnabled(false);
+    }
+
+    private void createTrashBarView() {
+        trashBarBinding = TrashLayoutBinding.inflate(LayoutInflater.from(this));
+        mTrashLayoutParams = WindowLayoutBuilder.buildTrashWindowLayoutParams();
+        getWindowManager().addView(trashBarBinding.getRoot(), mTrashLayoutParams);
+
+        TRASH_ICON_SIDE_LEN = 2 * (int) (APP_SCREEN_PIXELS_WIDTH / 12.0); // ensures divisible by 2
+        trashBarBinding.trashIcon1.getLayoutParams().width = TRASH_ICON_SIDE_LEN;
+        trashBarBinding.trashIcon1.getLayoutParams().height = TRASH_ICON_SIDE_LEN;
+        trashBarBinding.trashBar.getLayoutParams().height = 2 * TRASH_ICON_SIDE_LEN;
+        getWindowManager().updateViewLayout(trashBarBinding.getRoot(), mTrashLayoutParams);
+
+        // BubbleHandler enables trash bar during bubble onScroll
+        /*
+        trashBarBinding.trashIcon1.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View view, DragEvent dragEvent) {
+                Log.d("DragEvent", String.valueOf(dragEvent.getAction()));
+                int tintColor;
+                switch (dragEvent.getAction()) {
+                    case ACTION_DRAG_ENTERED:
+                        trashBarBinding.trashIcon1.clearColorFilter();
+                        tintColor = getResources().getColor(R.color.trash_bar_on_entered, getTheme());
+                        trashBarBinding.trashIcon1.getForeground().setTint(tintColor);
+                        break;
+                    case ACTION_DRAG_EXITED:
+                        trashBarBinding.trashIcon1.clearColorFilter();
+                        tintColor = getResources().getColor(R.color.white, getTheme());
+                        trashBarBinding.trashIcon1.getForeground().setTint(tintColor);
+                        break;
+                    case ACTION_DROP:
+
+                }
+                return true;
+            }
+        });
+
+         */
+        trashBarBinding.getRoot().setVisibility(GONE);
+        trashBarBinding.getRoot().setEnabled(false);
+    }
+
+    private void destroyServiceBubble() {
+        getWindowManager().removeView(serviceBubbleBinding.getRoot());
+        serviceBubbleBinding = null;
+        mBubbleLayoutParams = null;
+    }
+
+    private void destroyTrashBar() {
+        getWindowManager().removeView(trashBarBinding.getRoot());
+        trashBarBinding = null;
+        mTrashLayoutParams = null;
     }
 
 
@@ -162,6 +267,13 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
         return mWindowManager;
     }
 
+    public void reopenApp() {
+        Intent intent = getPackageManager()
+                .getLaunchIntentForPackage(getPackageName())
+                .setPackage(null)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startActivity(intent);
+    }
 
     private void createNotificationChannel() {
         NotificationChannel serviceChannel = new NotificationChannel(
@@ -176,66 +288,51 @@ public class FollowerService extends Service implements ServiceRepository.PeerCo
 
     @Override
     public boolean onUnbind(Intent intent) {
+        destroyServiceBubble();
+        destroyTrashBar();
         serviceRepo.onUnbind();
         return super.onUnbind(intent);
     }
 
-    public void onServiceAwaitPeer() {
-        mBubbleLayoutBinding.getRoot().setEnabled(false);
-        mBubbleLayoutBinding.getRoot().setVisibility(View.VISIBLE);
-        mBubbleLayoutBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.do_not_disturb_24));
+    public void onServiceNotReady() {
+
     }
 
     public void onServiceReady() {
-        mBubbleLayoutBinding.getRoot().setEnabled(true);
-        mBubbleLayoutBinding.getRoot().setVisibility(View.VISIBLE);
-        mBubbleLayoutBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.play_arrow_24));
-    }
-
-    public void onServiceRunning() {
-        mBubbleLayoutBinding.getRoot().setEnabled(true);
-        mBubbleLayoutBinding.getRoot().setVisibility(View.VISIBLE);
-        mBubbleLayoutBinding.bubble1.setImageIcon(Icon.createWithResource(this, R.drawable.pause_24));
-    }
-
-    @Override
-    public void broadcastPeerConnected() {
-        Log.d("broadcastPeerConnected", "attempt to broadcast");
-        peerStatusLiveData.postValue(ON_PEER_CONN);
-    }
-
-    @Override
-    public void broadcastPeerDisconnected() {
-        Log.d("broadcastPeerDisconnected", "attempt to broadcast");
-        peerStatusLiveData.postValue(ON_PEER_DISCONN);
-    }
-
-
-    public void onPauseService() {
         if (serviceRepo.rtcClient.mediaStream != null) {
             serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(false);
         }
 
-        serviceRepo.isPaused = true;
+        serviceRepo.screenControlEnabled = false;
     }
 
-    public void onResumeService() {
+    public void onServiceRunning() {
         if (serviceRepo.rtcClient.mediaStream != null) {
             serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(true);
         }
 
-        // Send test message to server
-        /*
-        if (serviceRepo.socketClient != null) {
-            Log.d("checkIsPeerConnected", "success");
-            sendBroadcastUpdateAppState(SERVICE_RUNNING);
-            serviceRepo.socketClient.checkIsPeerConnected();
-        }
-
-         */
-
         serviceRepo.isPaused = false;
     }
 
+    public void onBubbleClick() {
+        serviceState.onBubbleButtonClick();
+    }
+
+    @Override
+    public void postPeerConnected() {
+        Log.d("postPeerConnected", "attempt to broadcast");
+        serviceState.onPeerConnect();
+    }
+
+    @Override
+    public void postPeerDisconnected() {
+        Log.d("postPeerDisconnected", "attempt to broadcast");
+        serviceState.onPeerDisconnect();
+    }
+
+    public void notifyEndService() {
+        notifyEndService.postValue("end");
+        reopenApp();
+    }
 
 }

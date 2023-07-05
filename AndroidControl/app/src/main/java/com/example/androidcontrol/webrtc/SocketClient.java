@@ -76,13 +76,6 @@ public class SocketClient {
         websocket.connect();
     }
 
-    public void checkIsPeerConnected() {
-        websocket.send(AUTH_TOKEN + clientKey);
-    }
-
-
-
-
     public static String dumbEncrypt(String msg) {
         int msgLen = msg.length();
         char msgChar[] = msg.toCharArray();

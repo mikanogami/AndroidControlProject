@@ -14,10 +14,16 @@
     <color name="main_button_launch_permissions">#606060</color>
     <color name="main_button_await_start">@color/white</color>
     <color name="main_button_await_peer">#FFBF00</color>
-    <color name="main_button_peer_connected">#00D100</color>
+    <color name="main_button_bound">#00D100</color>
 
     <color name="bubble_button_background">#959595</color>
     <color name="bubble_button_await_peer_tint">@color/white</color>
     <color name="bubble_button_peer_connected_tint">@color/white</color>
+
+    <!-- Trash Bar Gradient Colours. -->
+    <color name="trash_bar_start_color">#BF606060</color>
+    <color name="trash_bar_center_color">#99606060</color>
+    <color name="trash_bar_end_color">#00606060</color>
+    <color name="trash_bar_on_entered">#D10000</color>
 
 </resources>

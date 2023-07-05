@@ -12,9 +12,6 @@ import android.util.Log;
 import com.example.androidcontrol.utils.Type;
 import com.example.androidcontrol.utils.Utils;
 
-import org.webrtc.Camera1Enumerator;
-import org.webrtc.Camera2Enumerator;
-import org.webrtc.CameraEnumerator;
 import org.webrtc.DataChannel;
 import org.webrtc.DefaultVideoDecoderFactory;
 import org.webrtc.DefaultVideoEncoderFactory;
@@ -56,29 +53,18 @@ public class RTCClient {
     }
 
     public void handleDispose() {
-        Log.d("onUnbind", "0");
-        if (mSurfaceTextureHelper != null) {
+        if (mediaStream != null) {
+            mediaStream.videoTracks.get(0).setEnabled(false);
+            mediaStream.removeTrack(localVideoTrack);
+            localVideoTrack.dispose();
             mSurfaceTextureHelper.stopListening();
             mSurfaceTextureHelper.dispose();
+            mediaStream = null;
         }
 
-        Log.d("onUnbind", "1");
-        if (localVideoTrack != null) {
-            if (mediaStream != null) {
-                mediaStream.removeTrack(localVideoTrack);
-            }
-            localVideoTrack.dispose();
-        }
-
-
-        Log.d("onUnbind", "3");
         if (peerConnection != null) {
             peerConnection.close();
             peerConnection.dispose();
-        }
-
-        Log.d("onUnbind", "4");
-        if (factory != null) {
             factory.stopAecDump();
         }
     }
@@ -184,20 +170,14 @@ public class RTCClient {
 
 
 
-    public void createVideoTrackFromCameraAndShowIt() {
+    public void createVideoTrackFromScreenCapture() {
         VideoCapturer videoCapturer = createScreenCapturer();
         VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
-        mSurfaceTextureHelper = SurfaceTextureHelper.create(
-                Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
-        videoCapturer.initialize(mSurfaceTextureHelper, context,
-                videoSource.getCapturerObserver());
+        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
+        videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
 
-
-        videoCapturer.startCapture(VIDEO_PIXELS_WIDTH, VIDEO_PIXELS_HEIGHT, FPS);
+        videoCapturer.startCapture(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT, FPS);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
-        localVideoTrack.setEnabled(true);
-
-        rtcListener.renderLocalVideoTrack(localVideoTrack);
     }
 
     public void startStreamingVideo() {
@@ -252,13 +232,7 @@ public class RTCClient {
 
             @Override
             public void onAddStream(MediaStream mediaStream) {
-                Log.d(TAG, "onAddStream: " + mediaStream.videoTracks.size());
-                VideoTrack remoteVideoTrack = mediaStream.videoTracks.get(0);
-                remoteVideoTrack.setEnabled(true);
-                // remoteVideoTrack.addRenderer(new VideoRenderer(binding.surfaceView2));
-
-                rtcListener.renderRemoteVideoTrack(remoteVideoTrack);
-                //remoteVideoTrack.addSink(clientActivity.getBinding().surfaceView2);
+                Log.d(TAG, "onAddStream: " + "FOL does not receive media streams from expert");
             }
 
             @Override
@@ -324,51 +298,9 @@ public class RTCClient {
     }
 
 
-    private VideoCapturer createVideoCapturer() {
-        VideoCapturer videoCapturer;
-        if (useCamera2()) {
-            videoCapturer = createCameraCapturer(new Camera2Enumerator(context));
-        } else {
-            videoCapturer = createCameraCapturer(new Camera1Enumerator(true));
-        }
-        return videoCapturer;
-    }
-
-    private VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
-        final String[] deviceNames = enumerator.getDeviceNames();
-
-        for (String deviceName : deviceNames) {
-            if (enumerator.isFrontFacing(deviceName)) {
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        for (String deviceName : deviceNames) {
-            if (!enumerator.isFrontFacing(deviceName)) {
-                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
-
-                if (videoCapturer != null) {
-                    return videoCapturer;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private boolean useCamera2() {
-        return Camera2Enumerator.isSupported(context);
-    }
-
     public interface RTCListener {
         void sendSdpToSocket(String sdp, int type);
         void sendCandidateToSocket(String sdp, int sdpMLineIndex, String sdpMid);
         void renderControlEvent(byte[] eventBytes);
-        void renderLocalVideoTrack(VideoTrack vTrack);
-        void renderRemoteVideoTrack(VideoTrack vTrack);
     }
 }

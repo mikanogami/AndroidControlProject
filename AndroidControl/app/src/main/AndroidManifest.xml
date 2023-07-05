@@ -29,22 +29,13 @@
         <activity
             android:name="com.example.androidcontrol.MainActivity"
             android:label="@string/main_activity"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity
-            android:name=".ui.BubbleActivity"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:label="Activity Bubble"
-            android:allowEmbedded="true"
-            android:resizeableActivity="true"
-            android:documentLaunchMode="always"
-            android:excludeFromRecents="true"
-            android:exported="true" >
         </activity>
         <service
             android:name="com.example.androidcontrol.service.FollowerService"

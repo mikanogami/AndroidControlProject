@@ -15,16 +15,19 @@ public abstract class MyConstants {
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
 
     // These are set using WindowManager from MainActivity
-    public static int VIDEO_PIXELS_WIDTH;
-    public static int VIDEO_PIXELS_HEIGHT;
+    public static int APP_SCREEN_PIXELS_HEIGHT;
+    public static int APP_SCREEN_PIXELS_WIDTH;
+    public static int FULL_SCREEN_PIXELS_HEIGHT;
+    public static int PROJECTED_PIXELS_WIDTH;
+    public static int PROJECTED_PIXELS_HEIGHT;
+    public static int BUBBLE_ICON_RADIUS;
+    public static int TRASH_ICON_SIDE_LEN;
     public static int DISPLAY_SURFACE_WIDTH;
     public static int DISPLAY_SURFACE_HEIGHT;
     public static final int FPS = 30;
 
-    public static final String BUBBLE_SHORTCUT_ID = "bubble-handler";
     public static final String NOTIF_CHANNEL_ID = "ForegroundServiceChannel";
     public static final String M_PROJ_INTENT = "mediaProjectionIntent";
-    public static final float FLOAT_NULL = -1;
     public static final String DATA_CHANNEL_NAME = "phoneControl";
 
 }
