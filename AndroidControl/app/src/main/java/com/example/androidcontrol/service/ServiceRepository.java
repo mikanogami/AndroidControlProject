@@ -1,6 +1,5 @@
 package com.example.androidcontrol.service;
 
-import static com.example.androidcontrol.utils.MyConstants.FOL_CLIENT_KEY;
 import static com.example.androidcontrol.utils.MyConstants.PEER_CONNECTED;
 import static com.example.androidcontrol.utils.MyConstants.PEER_DISCONNECTED;
 import static com.example.androidcontrol.utils.MyConstants.PEER_UNAVAILABLE;
@@ -25,7 +24,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     Context context;
     protected SocketClient socketClient;
     public RTCClient rtcClient;
-    public boolean isPaused;
+    public boolean screenControlEnabled;
 
     public ServiceRepository(Context context) {
         this.context = context;

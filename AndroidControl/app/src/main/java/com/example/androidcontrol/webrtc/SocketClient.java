@@ -48,6 +48,7 @@ public class SocketClient {
             throw new RuntimeException(e);
         }
 
+        Log.d(TAG, "connectToSignallingServer");
         websocket = new WebSocketClient(uri) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
@@ -105,9 +106,6 @@ public class SocketClient {
         return String.valueOf(msgChar);
     }
 
-    public void checkIsPeerConnected() {
-        websocket.send(AUTH_TOKEN + clientKey);
-    }
 
     public void sendMessage(String message) {
         String messageToSend;

@@ -14,6 +14,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.Icon;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -21,9 +23,11 @@ import android.os.IBinder;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -34,6 +38,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.androidcontrol.databinding.ActivityMainBinding;
+import com.example.androidcontrol.databinding.BubbleLayoutBinding;
 import com.example.androidcontrol.service.FollowerService;
 import com.example.androidcontrol.model.ActivityStateHolder;
 import com.example.androidcontrol.utils.UtilsPermissions;
@@ -197,7 +202,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onAwaitServiceStart() {
-
     }
 
     private boolean hasAppPermissions() {
