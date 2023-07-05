@@ -303,7 +303,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
             serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(false);
         }
 
-        serviceRepo.screenControlEnabled = false;
+        serviceRepo.isPaused = false;
     }
 
     public void onServiceRunning() {
