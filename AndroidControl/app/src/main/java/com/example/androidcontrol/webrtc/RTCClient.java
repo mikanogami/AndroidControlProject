@@ -54,6 +54,7 @@ public class RTCClient {
 
     public void handleDispose() {
         if (mediaStream != null) {
+            mediaStream.videoTracks.get(0).setEnabled(false);
             mediaStream.removeTrack(localVideoTrack);
             localVideoTrack.dispose();
             mSurfaceTextureHelper.stopListening();

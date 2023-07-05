@@ -15,7 +15,7 @@ public abstract class MyConstants {
 
     // These are set using WindowManager from MainActivity
     public static int APP_SCREEN_PIXELS_HEIGHT;
-    public static int FULL_SCREEN_PIXELS_WIDTH;
+    public static int APP_SCREEN_PIXELS_WIDTH;
     public static int FULL_SCREEN_PIXELS_HEIGHT;
     public static int PROJECTED_PIXELS_WIDTH;
     public static int PROJECTED_PIXELS_HEIGHT;

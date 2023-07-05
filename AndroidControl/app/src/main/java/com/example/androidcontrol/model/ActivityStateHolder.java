@@ -1,5 +1,7 @@
 package com.example.androidcontrol.model;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -17,6 +19,7 @@ public class ActivityStateHolder extends ViewModel {
     public LiveData<Integer> getAppState() { return appState; }
     public Integer getCurrentAppState() { return currentAppState; }
     private void setAppState(Integer newState) {
+        Log.d("ActivityStateHolder", "newState: " + newState);
         currentAppState = newState;
         appState.setValue(newState);
     }
@@ -29,6 +32,7 @@ public class ActivityStateHolder extends ViewModel {
         setAppState(AWAIT_LAUNCH_PERMISSIONS);
     }
 
+
     public void onMainButtonClick() {
         switch (currentAppState) {
             case AWAIT_LAUNCH_PERMISSIONS:
@@ -40,7 +44,7 @@ public class ActivityStateHolder extends ViewModel {
                 setAppState(SERVICE_BOUND);
                 break;
             case SERVICE_BOUND:
-                setAppState(LAUNCH_PERMISSIONS);
+                setAppState(AWAIT_LAUNCH_PERMISSIONS);
                 break;
         }
     }

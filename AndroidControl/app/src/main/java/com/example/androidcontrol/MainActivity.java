@@ -6,10 +6,7 @@ import static com.example.androidcontrol.model.ActivityStateHolder.SERVICE_BOUND
 import static com.example.androidcontrol.model.ActivityStateHolder.LAUNCH_PERMISSIONS;
 import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
-import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_HEIGHT;
-import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_WIDTH;
-import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_HEIGHT;
-import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_WIDTH;
 
 import android.app.AlertDialog;
 import android.content.ComponentName;
@@ -33,7 +30,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.WindowCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -81,11 +77,21 @@ public class MainActivity extends AppCompatActivity {
                     }
             );
 
+
     private ServiceConnection mConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
             FollowerService.FollowerBinder binder = (FollowerService.FollowerBinder) service;
             mBoundService = binder.getService();
             mIsBound = true;
+
+            binder.getNotifyEndService().observe(MainActivity.this, serviceStatus -> {
+                Log.d("serviceStatus", "onChanged");
+                if (serviceStatus.equals(null)) {
+                    // DO NOTHING
+                } else {
+                    onTryUnbindService();
+                }
+            });
 
             Log.d(TAG, "Follower service connected");
         }
@@ -105,29 +111,16 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
 
-        DisplayMetrics realDisplayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getRealMetrics(realDisplayMetrics);
-        // Size (pixels) of the android phone screen used to scale UI components
-        FULL_SCREEN_PIXELS_HEIGHT = realDisplayMetrics.heightPixels;
-        FULL_SCREEN_PIXELS_WIDTH = realDisplayMetrics.widthPixels;
-
-        // The resolution (pixels) we send via media projection
-        PROJECTED_PIXELS_HEIGHT = FULL_SCREEN_PIXELS_HEIGHT;
-        PROJECTED_PIXELS_WIDTH = FULL_SCREEN_PIXELS_WIDTH;
-
         DisplayMetrics appDisplayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(appDisplayMetrics);
         APP_SCREEN_PIXELS_HEIGHT = appDisplayMetrics.heightPixels;
+        APP_SCREEN_PIXELS_WIDTH = appDisplayMetrics.widthPixels;
         Log.d("MainBinding", String.valueOf(appDisplayMetrics.heightPixels));
 
         mWindow = getWindow();
-        WindowCompat.setDecorFitsSystemWindows(mWindow, false);
+        //wWindowCompat.setDecorFitsSystemWindows(mWindow, false);
 
-
-
-
-
-        int buttonDiameter = (int) (FULL_SCREEN_PIXELS_WIDTH / 3.0);
+        int buttonDiameter = (int) (APP_SCREEN_PIXELS_WIDTH / 3.0);
         binding.appStateButton.getLayoutParams().width = buttonDiameter;
         binding.appStateButton.getLayoutParams().height = buttonDiameter;
 
@@ -144,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case LAUNCH_PERMISSIONS:
                         onLaunchPermissions();
+                        break;
                     case AWAIT_SERVICE_START:
                         onAwaitServiceStart();
                         break;
@@ -158,16 +152,39 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Log.d("click?", "click.");
-                activityStateHolder.onMainButtonClick();
+                if (mIsBound) {
+                    onTryUnbindService();
+                } else {
+                    activityStateHolder.onMainButtonClick();
+                }
             }
         });
 
         mIsBound = false;
     }
 
-    private void unbindFromService() {
-        mIsBound = false;
-        this.unbindService(mConnection);
+    private void onTryUnbindService() {
+        Log.d("activityState", String.valueOf(activityStateHolder.getCurrentAppState()));
+
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.end_service_hint)
+                .setPositiveButton(R.string.end_service_button, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int i) {
+                        mIsBound = false;
+                        unbindService(mConnection);
+                        activityStateHolder.onMainButtonClick();
+                    }
+                })
+                .setNegativeButton(R.string.cancel_button, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int i) {
+                        updateAppStateButtonUI(SERVICE_BOUND);
+                    }
+                })
+                .setCancelable(false)
+                .create()
+                .show();
     }
 
 
@@ -180,9 +197,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onAwaitServiceStart() {
-        if (mIsBound) {
-            unbindFromService();
-        }
+
     }
 
     private boolean hasAppPermissions() {
@@ -257,9 +272,7 @@ public class MainActivity extends AppCompatActivity {
                 tintColor = getResources().getColor(R.color.white, getTheme());
                 break;
             case SERVICE_BOUND:
-                if (mProjectionIntent != null) {
-                    tintColor = getResources().getColor(R.color.main_button_await_peer, getTheme());
-                }
+                tintColor = getResources().getColor(R.color.main_button_bound, getTheme());
                 break;
         }
         binding.appStateButton.getForeground().setTint(tintColor);
@@ -294,6 +307,7 @@ public class MainActivity extends AppCompatActivity {
                 mIsBound = false;
             }
         }
+        finishAffinity();
         super.onDestroy();
     }
 }

@@ -2,7 +2,7 @@ package com.example.androidcontrol.ui;
 
 import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.BUBBLE_ICON_RADIUS;
-import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_WIDTH;
 import static com.example.androidcontrol.utils.MyConstants.TRASH_ICON_SIDE_LEN;
 
 import android.util.Log;
@@ -65,7 +65,7 @@ public class BubbleHandler {
         public GestureHandler() {
             WindowManager.LayoutParams trashParams = (WindowManager.LayoutParams)
                     service.trashBarBinding.getRoot().getLayoutParams();
-            trashPosX = (FULL_SCREEN_PIXELS_WIDTH / 2) - TRASH_ICON_SIDE_LEN / 2;
+            trashPosX = (APP_SCREEN_PIXELS_WIDTH / 2) - TRASH_ICON_SIDE_LEN / 2;
             trashPosY = APP_SCREEN_PIXELS_HEIGHT - 3 * TRASH_ICON_SIDE_LEN / 2;
 
             Log.d("TrashPos", trashPosX + " " + trashPosY);
@@ -157,7 +157,7 @@ public class BubbleHandler {
                                float velocityX, float velocityY) {
             Log.d(TAG, "onFling: " + velocityX + " " + velocityY);
             //mScroller.fling((int) event1.getRawX(),(int) event1.getRawY(), (int) velocityX,(int) velocityY, 0, 0, SCREEN_PIXELS_WIDTH, SCREEN_PIXELS_HEIGHT);
-            return super.onFling(event1, event2, velocityX, velocityY);
+            return false;
         }
     }
 }

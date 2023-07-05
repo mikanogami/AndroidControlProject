@@ -75,9 +75,6 @@ public class SocketClient {
         websocket.connect();
     }
 
-
-
-
     public static String dumbEncrypt(String msg) {
         int msgLen = msg.length();
         char msgChar[] = msg.toCharArray();
