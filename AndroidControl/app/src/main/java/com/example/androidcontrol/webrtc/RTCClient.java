@@ -26,9 +26,13 @@ import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SessionDescription;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
+import org.webrtc.VideoFrame;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
+import org.webrtc.YuvConverter;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -173,7 +177,32 @@ public class RTCClient {
     public void createVideoTrackFromScreenCapture() {
         VideoCapturer videoCapturer = createScreenCapturer();
         VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
-        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
+        SurfaceTextureHelper.FrameRefMonitor frameRefMonitor = new SurfaceTextureHelper.FrameRefMonitor() {
+            int count;
+            @Override
+            public void onNewBuffer(VideoFrame.TextureBuffer textureBuffer) {
+                count = 0;
+                Log.d("FrameRefMonitor", "onNewBuffer");
+            }
+
+            @Override
+            public void onRetainBuffer(VideoFrame.TextureBuffer textureBuffer) {
+                count++;
+                //Log.d("FrameRefMonitor", String.valueOf(count));
+            }
+
+            @Override
+            public void onReleaseBuffer(VideoFrame.TextureBuffer textureBuffer) {
+                count--;
+            }
+
+            @Override
+            public void onDestroyBuffer(VideoFrame.TextureBuffer textureBuffer) {
+                Log.d("FrameRefMonitor", "onDestroyBuffer");
+            }
+        };
+
+        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true, new YuvConverter(), frameRefMonitor);
         videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
 
         videoCapturer.startCapture(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT, FPS);
@@ -181,18 +210,22 @@ public class RTCClient {
     }
 
     public void startStreamingVideo() {
-        mediaStream = factory.createLocalMediaStream("ARDAMS");
-        mediaStream.addTrack(localVideoTrack);
-        peerConnection.addStream(mediaStream);
+        //mediaStream = factory.createLocalMediaStream("ARDAMS");
+        //mediaStream.addTrack(localVideoTrack);
+        //peerConnection.addStream(mediaStream);
+        peerConnection.addTransceiver(localVideoTrack);
         Log.d(TAG, "Client media added to stream and started streaming locally");
     }
 
     private PeerConnection createPeerConnection(PeerConnectionFactory factory) {
         ArrayList<PeerConnection.IceServer> iceServers = new ArrayList<PeerConnection.IceServer>();
         String URL = "stun:stun.l.google.com:19302";
-        iceServers.add(new PeerConnection.IceServer(URL));
+        iceServers.add(PeerConnection.IceServer.builder(URL).createIceServer());
+
 
         PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
+        rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
+
         MediaConstraints pcConstraints = new MediaConstraints();
 
         PeerConnection.Observer pcObserver = new PeerConnection.Observer() {
@@ -275,7 +308,7 @@ public class RTCClient {
             }
         };
 
-        return factory.createPeerConnection(rtcConfig, pcConstraints, pcObserver);
+        return factory.createPeerConnection(rtcConfig, pcObserver);
     }
 
 
