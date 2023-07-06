@@ -5,8 +5,11 @@ import static com.example.androidcontrol.model.ActivityStateHolder.AWAIT_SERVICE
 import static com.example.androidcontrol.model.ActivityStateHolder.SERVICE_BOUND;
 import static com.example.androidcontrol.model.ActivityStateHolder.LAUNCH_PERMISSIONS;
 import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_HEIGHT;
+import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_WIDTH;
+import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_HEIGHT;
+import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_WIDTH;
 
 import android.app.AlertDialog;
 import android.content.ComponentName;
@@ -14,10 +17,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Insets;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Icon;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
@@ -27,7 +32,9 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.view.WindowMetrics;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -116,11 +123,30 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
 
-        DisplayMetrics appDisplayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(appDisplayMetrics);
-        APP_SCREEN_PIXELS_HEIGHT = appDisplayMetrics.heightPixels;
-        APP_SCREEN_PIXELS_WIDTH = appDisplayMetrics.widthPixels;
-        Log.d("MainBinding", String.valueOf(appDisplayMetrics.heightPixels));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowMetrics windowMetrics = this.getWindowManager().getCurrentWindowMetrics();
+            Insets insets = windowMetrics.getWindowInsets()
+                    .getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+            FULL_SCREEN_PIXELS_HEIGHT = windowMetrics.getBounds().height();
+            APP_SCREEN_PIXELS_HEIGHT = windowMetrics.getBounds().height() - insets.top - insets.bottom;
+            APP_SCREEN_PIXELS_WIDTH = windowMetrics.getBounds().width();
+        } else {
+            DisplayMetrics appDisplayMetrics = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(appDisplayMetrics);
+            APP_SCREEN_PIXELS_HEIGHT = appDisplayMetrics.heightPixels;
+            APP_SCREEN_PIXELS_WIDTH = appDisplayMetrics.widthPixels;
+            DisplayMetrics realDisplayMetrics = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getRealMetrics(realDisplayMetrics);
+
+            // Size (pixels) of the android phone screen used to scale UI components
+            FULL_SCREEN_PIXELS_HEIGHT = realDisplayMetrics.heightPixels;
+            Log.d("MainBinding", String.valueOf(appDisplayMetrics.heightPixels));
+        }
+
+        // The resolution (pixels) we send via media projection
+        PROJECTED_PIXELS_HEIGHT = (int) FULL_SCREEN_PIXELS_HEIGHT;
+        PROJECTED_PIXELS_WIDTH = (int) APP_SCREEN_PIXELS_WIDTH;
 
         mWindow = getWindow();
         //wWindowCompat.setDecorFitsSystemWindows(mWindow, false);
