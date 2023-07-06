@@ -14,7 +14,6 @@ import android.view.WindowManager;
 import androidx.core.view.GestureDetectorCompat;
 
 import com.example.androidcontrol.service.FollowerService;
-import com.example.androidcontrol.utils.AppState;
 
 public class BubbleHandler {
 

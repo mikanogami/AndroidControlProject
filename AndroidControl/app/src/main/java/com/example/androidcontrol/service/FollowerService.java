@@ -20,6 +20,7 @@ import android.app.NotificationManager;
 
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.drawable.Icon;
 import android.os.Binder;
 import android.os.Build;
@@ -145,6 +146,12 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         return mBinder;
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Log.d("onNewConfiguration", String.valueOf(newConfig));
+        serviceRepo.rtcClient.onScreenOrientationChange(String.valueOf(newConfig.orientation));
+    }
 
     private void updateBubbleButtonUI(@NonNull Integer currentServiceState) {
 

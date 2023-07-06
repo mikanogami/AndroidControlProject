@@ -28,6 +28,7 @@ public abstract class MyConstants {
 
     public static final String NOTIF_CHANNEL_ID = "ForegroundServiceChannel";
     public static final String M_PROJ_INTENT = "mediaProjectionIntent";
-    public static final String DATA_CHANNEL_NAME = "phoneControl";
+    public static final String RECEIVE_CONTROL_DC_NAME = "phoneControl";
+    public static final String SEND_ORIENTATION_DC_NAME = "phoneOrientation";
 
 }

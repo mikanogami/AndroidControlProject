@@ -58,6 +58,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         rtcClient.createVideoTrackFromScreenCapture();
         rtcClient.startStreamingVideo();
         rtcClient.createControlDataChannel();
+        rtcClient.createScreenOrientationDataChannel();
     }
 
     @Override

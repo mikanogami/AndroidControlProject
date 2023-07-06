@@ -44,6 +44,7 @@ public class RTCClient {
     PeerConnectionFactory factory;
     public VideoTrack localVideoTrack;
     private DataChannel receiveControlEventsDC;
+    private DataChannel sendScreenOrientationDC;
     public static Intent mProjectionIntent;
     SurfaceTextureHelper mSurfaceTextureHelper;
 
@@ -129,30 +130,27 @@ public class RTCClient {
 
     public void createControlDataChannel() {
         Log.d(TAG, "createControlDataChannel: ");
-        receiveControlEventsDC = peerConnection.createDataChannel(DATA_CHANNEL_NAME, new DataChannel.Init());
+        receiveControlEventsDC = peerConnection.createDataChannel(RECEIVE_CONTROL_DC_NAME, new DataChannel.Init());
         receiveControlEventsDC.registerObserver(new DataChannel.Observer() {
             @Override
-            public void onBufferedAmountChange(long l) {
-
-            }
-
+            public void onBufferedAmountChange(long l) { }
             @Override
-            public void onStateChange() {
-
-            }
-
+            public void onStateChange() { }
             @Override
-            public void onMessage(DataChannel.Buffer buffer) {
-                receiveMessageFromChannel(buffer.data);
-            }
+            public void onMessage(DataChannel.Buffer buffer) { receiveMessageFromChannel(buffer.data); }
         });
     }
 
-    public void sendMessageToChannel(byte[] message) {
-        ByteBuffer data = Utils.bytesToByteBuffer(message);
+    public void createScreenOrientationDataChannel() {
+        Log.d(TAG, "createControlDataChannel: ");
+        sendScreenOrientationDC = peerConnection.createDataChannel(SEND_ORIENTATION_DC_NAME, new DataChannel.Init());
+    }
 
-        if (receiveControlEventsDC != null) {
-            receiveControlEventsDC.send(new DataChannel.Buffer(data, false));
+    public void onScreenOrientationChange(String message) {
+        ByteBuffer data = Utils.stringToByteBuffer(message);
+
+        if (sendScreenOrientationDC != null) {
+            sendScreenOrientationDC.send(new DataChannel.Buffer(data, false));
         }
     }
 
