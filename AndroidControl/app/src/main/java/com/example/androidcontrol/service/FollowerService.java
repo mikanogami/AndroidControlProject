@@ -299,16 +299,16 @@ public class FollowerService extends LifecycleService implements ServiceReposito
     }
 
     public void onServiceReady() {
-        if (serviceRepo.rtcClient.mediaStream != null) {
-            serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(false);
+        if (serviceRepo.rtcClient.localVideoTrack != null) {
+            serviceRepo.rtcClient.localVideoTrack.setEnabled(false);
         }
 
         serviceRepo.isPaused = false;
     }
 
     public void onServiceRunning() {
-        if (serviceRepo.rtcClient.mediaStream != null) {
-            serviceRepo.rtcClient.mediaStream.videoTracks.get(0).setEnabled(true);
+        if (serviceRepo.rtcClient.localVideoTrack != null) {
+            serviceRepo.rtcClient.localVideoTrack.setEnabled(true);
         }
 
         serviceRepo.isPaused = false;

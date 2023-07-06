@@ -46,8 +46,7 @@ public class RTCClient {
     PeerConnection peerConnection;
     public EglBase rootEglBase = EglBase.create();
     PeerConnectionFactory factory;
-    VideoTrack localVideoTrack;
-    public MediaStream mediaStream;
+    public VideoTrack localVideoTrack;
     private DataChannel localDataChannel;
     public static Intent mProjectionIntent;
     SurfaceTextureHelper mSurfaceTextureHelper;
@@ -57,16 +56,13 @@ public class RTCClient {
     }
 
     public void handleDispose() {
-        if (mediaStream != null) {
-            mediaStream.videoTracks.get(0).setEnabled(false);
-            mediaStream.removeTrack(localVideoTrack);
-            localVideoTrack.dispose();
-            mSurfaceTextureHelper.stopListening();
-            mSurfaceTextureHelper.dispose();
-            mediaStream = null;
-        }
-
         if (peerConnection != null) {
+            if (localVideoTrack != null) {
+                peerConnection.getSenders().remove(0);
+                localVideoTrack.dispose();
+                mSurfaceTextureHelper.stopListening();
+                mSurfaceTextureHelper.dispose();
+            }
             peerConnection.close();
             peerConnection.dispose();
             factory.stopAecDump();
@@ -177,43 +173,22 @@ public class RTCClient {
     public void createVideoTrackFromScreenCapture() {
         VideoCapturer videoCapturer = createScreenCapturer();
         VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
-        SurfaceTextureHelper.FrameRefMonitor frameRefMonitor = new SurfaceTextureHelper.FrameRefMonitor() {
-            int count;
-            @Override
-            public void onNewBuffer(VideoFrame.TextureBuffer textureBuffer) {
-                count = 0;
-                Log.d("FrameRefMonitor", "onNewBuffer");
-            }
 
-            @Override
-            public void onRetainBuffer(VideoFrame.TextureBuffer textureBuffer) {
-                count++;
-                //Log.d("FrameRefMonitor", String.valueOf(count));
-            }
-
-            @Override
-            public void onReleaseBuffer(VideoFrame.TextureBuffer textureBuffer) {
-                count--;
-            }
-
-            @Override
-            public void onDestroyBuffer(VideoFrame.TextureBuffer textureBuffer) {
-                Log.d("FrameRefMonitor", "onDestroyBuffer");
-            }
-        };
-
-        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true, new YuvConverter(), frameRefMonitor);
+        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
         videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
 
         videoCapturer.startCapture(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT, FPS);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
+
+        peerConnection.addTrack(localVideoTrack);
+        localVideoTrack.setEnabled(false);
     }
 
     public void startStreamingVideo() {
         //mediaStream = factory.createLocalMediaStream("ARDAMS");
         //mediaStream.addTrack(localVideoTrack);
         //peerConnection.addStream(mediaStream);
-        peerConnection.addTransceiver(localVideoTrack);
+        //peerConnection.addTrack(localVideoTrack);
         Log.d(TAG, "Client media added to stream and started streaming locally");
     }
 
@@ -229,6 +204,13 @@ public class RTCClient {
         MediaConstraints pcConstraints = new MediaConstraints();
 
         PeerConnection.Observer pcObserver = new PeerConnection.Observer() {
+            @Override
+            public void onConnectionChange(PeerConnection.PeerConnectionState newState) {
+                Log.d(TAG, "onConnectionChange: " + newState);
+                if (newState.equals(PeerConnection.PeerConnectionState.CONNECTED)) {
+                    rtcListener.onPeerConnected();
+                }
+            }
             @Override
             public void onSignalingChange(PeerConnection.SignalingState signalingState) {
                 Log.d(TAG, "onSignalingChange: ");
@@ -335,5 +317,6 @@ public class RTCClient {
         void sendSdpToSocket(String sdp, int type);
         void sendCandidateToSocket(String sdp, int sdpMLineIndex, String sdpMid);
         void renderControlEvent(byte[] eventBytes);
+        void onPeerConnected();
     }
 }

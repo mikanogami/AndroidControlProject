@@ -66,7 +66,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
             Log.d("peer_status", "connected");
             socketClient.enableDoEncrypt();
             handleStartSignal();
-            peerConnectionListener.postPeerConnected();
+            //peerConnectionListener.postPeerConnected();
             return;
         } else if (message.equals(PEER_DISCONNECTED)) {
             Log.d("peer_status", "disconnected");
@@ -120,6 +120,10 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         Log.d(TAG, msg);
     }
 
+    @Override
+    public void onPeerConnected() {
+        peerConnectionListener.postPeerConnected();
+    }
     @Override
     public void sendSdpToSocket(String sdp, int type) {
         sendToSocket(type, sdp);
