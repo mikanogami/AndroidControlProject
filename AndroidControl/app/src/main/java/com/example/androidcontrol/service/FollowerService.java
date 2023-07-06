@@ -81,8 +81,8 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         FULL_SCREEN_PIXELS_HEIGHT = realDisplayMetrics.heightPixels;
 
         // The resolution (pixels) we send via media projection
-        PROJECTED_PIXELS_HEIGHT = (int) FULL_SCREEN_PIXELS_HEIGHT;
-        PROJECTED_PIXELS_WIDTH = (int) APP_SCREEN_PIXELS_WIDTH;
+        PROJECTED_PIXELS_HEIGHT = (int) FULL_SCREEN_PIXELS_HEIGHT / 2;
+        PROJECTED_PIXELS_WIDTH = (int) APP_SCREEN_PIXELS_WIDTH / 2;
 
         WindowCompat.setDecorFitsSystemWindows(mWindow, false);
         createNotificationChannel();
@@ -308,6 +308,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
 
     public void onServiceRunning() {
         if (serviceRepo.rtcClient.localVideoTrack != null) {
+            serviceRepo.rtcClient.localVideoTrack.setEnabled(false);
             serviceRepo.rtcClient.localVideoTrack.setEnabled(true);
         }
 

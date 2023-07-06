@@ -26,13 +26,9 @@ import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SessionDescription;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
-import org.webrtc.VideoFrame;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
-import org.webrtc.YuvConverter;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -47,7 +43,7 @@ public class RTCClient {
     public EglBase rootEglBase = EglBase.create();
     PeerConnectionFactory factory;
     public VideoTrack localVideoTrack;
-    private DataChannel localDataChannel;
+    private DataChannel receiveControlEventsDC;
     public static Intent mProjectionIntent;
     SurfaceTextureHelper mSurfaceTextureHelper;
 
@@ -58,7 +54,7 @@ public class RTCClient {
     public void handleDispose() {
         if (peerConnection != null) {
             if (localVideoTrack != null) {
-                peerConnection.getSenders().remove(0);
+                peerConnection.removeTrack(peerConnection.getSenders().get(0));
                 localVideoTrack.dispose();
                 mSurfaceTextureHelper.stopListening();
                 mSurfaceTextureHelper.dispose();
@@ -133,8 +129,8 @@ public class RTCClient {
 
     public void createControlDataChannel() {
         Log.d(TAG, "createControlDataChannel: ");
-        localDataChannel = peerConnection.createDataChannel(DATA_CHANNEL_NAME, new DataChannel.Init());
-        localDataChannel.registerObserver(new DataChannel.Observer() {
+        receiveControlEventsDC = peerConnection.createDataChannel(DATA_CHANNEL_NAME, new DataChannel.Init());
+        receiveControlEventsDC.registerObserver(new DataChannel.Observer() {
             @Override
             public void onBufferedAmountChange(long l) {
 
@@ -147,7 +143,6 @@ public class RTCClient {
 
             @Override
             public void onMessage(DataChannel.Buffer buffer) {
-                Log.d(TAG, "follower-side onMessage: " + buffer.data);
                 receiveMessageFromChannel(buffer.data);
             }
         });
@@ -156,8 +151,8 @@ public class RTCClient {
     public void sendMessageToChannel(byte[] message) {
         ByteBuffer data = Utils.bytesToByteBuffer(message);
 
-        if (localDataChannel != null) {
-            localDataChannel.send(new DataChannel.Buffer(data, false));
+        if (receiveControlEventsDC != null) {
+            receiveControlEventsDC.send(new DataChannel.Buffer(data, false));
         }
     }
 
@@ -258,9 +253,9 @@ public class RTCClient {
             @Override
             public void onDataChannel(DataChannel dataChannel) {
                 Log.d(TAG, "onDataChannel: ");
-                localDataChannel = dataChannel;
-                if (localDataChannel != null) {
-                    localDataChannel.registerObserver(new DataChannel.Observer() {
+                receiveControlEventsDC = dataChannel;
+                if (receiveControlEventsDC != null) {
+                    receiveControlEventsDC.registerObserver(new DataChannel.Observer() {
                         @Override
                         public void onBufferedAmountChange(long l) {
 

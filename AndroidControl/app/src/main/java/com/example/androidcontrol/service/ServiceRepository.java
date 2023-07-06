@@ -143,7 +143,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         if (!isPaused) {
             Intent intent = new Intent(context, ControlService.class);
             intent.putExtra("event", eventBytes);
-            Log.d(TAG, String.valueOf(Utils.bytesToFloat(eventBytes)) + " "
+            Log.d("renderControlEvent", String.valueOf(Utils.bytesToFloat(eventBytes)) + " "
                     + String.valueOf(Utils.bytesToFloat(Arrays.copyOfRange(eventBytes, 4, 8))));
 
             context.startService(intent);
