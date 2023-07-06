@@ -26,8 +26,10 @@ import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SessionDescription;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
+import org.webrtc.VideoFrame;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
+import org.webrtc.YuvConverter;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ public class RTCClient {
     PeerConnection peerConnection;
     public EglBase rootEglBase = EglBase.create();
     PeerConnectionFactory factory;
+    private ScreenCapturerAndroid screenCapturer;
     public VideoTrack localVideoTrack;
     private DataChannel receiveControlEventsDC;
     private DataChannel sendScreenOrientationDC;
@@ -102,7 +105,9 @@ public class RTCClient {
         peerConnection.addIceCandidate(candidate);
     }
 
+    
     public void initializePeerConnectionFactory() {
+
 
         PeerConnectionFactory.InitializationOptions initOptions = PeerConnectionFactory
                 .InitializationOptions.builder(context)
@@ -130,7 +135,7 @@ public class RTCClient {
 
     public void createControlDataChannel() {
         Log.d(TAG, "createControlDataChannel: ");
-        receiveControlEventsDC = peerConnection.createDataChannel(RECEIVE_CONTROL_DC_NAME, new DataChannel.Init());
+        receiveControlEventsDC = peerConnection.createDataChannel(DC_CONTROL_LABEL, new DataChannel.Init());
         receiveControlEventsDC.registerObserver(new DataChannel.Observer() {
             @Override
             public void onBufferedAmountChange(long l) { }
@@ -143,7 +148,7 @@ public class RTCClient {
 
     public void createScreenOrientationDataChannel() {
         Log.d(TAG, "createControlDataChannel: ");
-        sendScreenOrientationDC = peerConnection.createDataChannel(SEND_ORIENTATION_DC_NAME, new DataChannel.Init());
+        sendScreenOrientationDC = peerConnection.createDataChannel(DC_ORIENTATION_LABEL, new DataChannel.Init());
     }
 
     public void onScreenOrientationChange(String message) {
@@ -167,12 +172,31 @@ public class RTCClient {
         VideoCapturer videoCapturer = createScreenCapturer();
         VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
 
-        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true);
-        videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
+        SurfaceTextureHelper.FrameRefMonitor frameRefMonitor = new SurfaceTextureHelper.FrameRefMonitor() {
+            @Override
+            public void onNewBuffer(VideoFrame.TextureBuffer textureBuffer) {
 
+            }
+
+            @Override
+            public void onRetainBuffer(VideoFrame.TextureBuffer textureBuffer) {
+                Log.d("onRetainBuffer", "getNumCapturedFrames: " + String.valueOf(screenCapturer.getNumCapturedFrames()));
+            }
+
+            @Override
+            public void onReleaseBuffer(VideoFrame.TextureBuffer textureBuffer) {
+                Log.d("onReleaseBuffer", "getNumCapturedFrames: " + String.valueOf(screenCapturer.getNumCapturedFrames()));
+            }
+
+            @Override
+            public void onDestroyBuffer(VideoFrame.TextureBuffer textureBuffer) {
+
+            }
+        };
+        mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true, new YuvConverter(), frameRefMonitor);
+        videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
         videoCapturer.startCapture(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT, FPS);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
-
         peerConnection.addTrack(localVideoTrack);
         localVideoTrack.setEnabled(false);
     }
@@ -296,13 +320,10 @@ public class RTCClient {
             }
         };
 
-        VideoCapturer screenCapturer = new ScreenCapturerAndroid(
+        screenCapturer = new ScreenCapturerAndroid(
                 mProjectionIntent, mediaProjectionCallback);
-        Log.d("mProjectionIntent", String.valueOf(mProjectionIntent));
-        Log.d("mediaProjectionCallback", String.valueOf(mediaProjectionCallback));
-        Log.d("screenCapturer", String.valueOf(screenCapturer));
 
-        return screenCapturer;
+        return (VideoCapturer) screenCapturer;
     }
 
 
