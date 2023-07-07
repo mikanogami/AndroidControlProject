@@ -300,6 +300,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
 
     public void onServiceReady() {
         if (serviceRepo.rtcClient.localVideoTrack != null) {
+            //serviceRepo.rtcClient.localVideoTrack.setEnabled(true);
             serviceRepo.rtcClient.localVideoTrack.setEnabled(false);
         }
 
@@ -308,7 +309,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
 
     public void onServiceRunning() {
         if (serviceRepo.rtcClient.localVideoTrack != null) {
-            serviceRepo.rtcClient.localVideoTrack.setEnabled(false);
+            //serviceRepo.rtcClient.localVideoTrack.setEnabled(false);
             serviceRepo.rtcClient.localVideoTrack.setEnabled(true);
         }
 

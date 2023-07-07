@@ -18,8 +18,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Insets;
-import android.graphics.PixelFormat;
-import android.graphics.drawable.Icon;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
@@ -312,7 +310,18 @@ public class MainActivity extends AppCompatActivity {
         if (mProjectionIntent == null) {
             MediaProjectionManager mProjectionManager = (MediaProjectionManager)
                     getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+
             mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent());
+
+            // Wait for gradle version that is compatible with SDK 34 to use below code
+            // MediaProjectionConfig allows users to choose config of MediaProjection
+            /*
+            if (Build.VERSION.SDK_INT >= 34) {
+                mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForUserChoice()));
+            } else {
+                mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent());
+            }
+             */
         } else {
             onMediaProjectionPermissionGranted();
         }

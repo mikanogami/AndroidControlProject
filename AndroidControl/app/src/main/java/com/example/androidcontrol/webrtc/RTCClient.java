@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.media.projection.MediaProjection;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.example.androidcontrol.utils.Type;
 import com.example.androidcontrol.utils.Utils;
 
@@ -16,6 +18,7 @@ import org.webrtc.DataChannel;
 import org.webrtc.DefaultVideoDecoderFactory;
 import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
+import org.webrtc.HardwareVideoEncoderFactory;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
@@ -25,11 +28,18 @@ import org.webrtc.PeerConnectionFactory;
 import org.webrtc.RtpReceiver;
 import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SessionDescription;
+import org.webrtc.SoftwareVideoEncoderFactory;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
+import org.webrtc.VideoCodecInfo;
+import org.webrtc.VideoEncoder;
+import org.webrtc.VideoEncoderFactory;
 import org.webrtc.VideoFrame;
+import org.webrtc.VideoProcessor;
+import org.webrtc.VideoSink;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
+import org.webrtc.WrappedNativeVideoDecoder;
 import org.webrtc.YuvConverter;
 
 import java.nio.ByteBuffer;
@@ -43,7 +53,7 @@ public class RTCClient {
     public RTCClient.RTCListener rtcListener;
 
     PeerConnection peerConnection;
-    public EglBase rootEglBase = EglBase.create();
+    public EglBase rootEglBase;
     PeerConnectionFactory factory;
     private ScreenCapturerAndroid screenCapturer;
     public VideoTrack localVideoTrack;
@@ -109,7 +119,8 @@ public class RTCClient {
 
     public void initializePeerConnectionFactory() {
 
-
+        rootEglBase = EglBase.create(null, new EglBase.ConfigBuilder().setHasAlphaChannel(false).createConfigAttributes());
+        //rootEglBase = EglBase.create();
         PeerConnectionFactory.InitializationOptions initOptions = PeerConnectionFactory
                 .InitializationOptions.builder(context)
                 .createInitializationOptions();
@@ -118,8 +129,8 @@ public class RTCClient {
         //Create a new PeerConnectionFactory instance - using Hardware encoder and decoder.
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
         DefaultVideoEncoderFactory defaultVideoEncoderFactory = new DefaultVideoEncoderFactory(
-                rootEglBase.getEglBaseContext(),
-                /* enableIntelVp8Encoder */true,  /* enableH264HighProfile */true);
+                rootEglBase.getEglBaseContext(), true,true);
+
 
         DefaultVideoDecoderFactory defaultVideoDecoderFactory = new DefaultVideoDecoderFactory(
                 rootEglBase.getEglBaseContext());
@@ -165,15 +176,12 @@ public class RTCClient {
         rtcListener.renderControlEvent(message);
     }
 
-
-
-
-
     public void createVideoTrackFromScreenCapture() {
         VideoCapturer videoCapturer = createScreenCapturer();
-        VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast());
-
+        VideoSource videoSource = factory.createVideoSource(videoCapturer.isScreencast(), true);
         SurfaceTextureHelper.FrameRefMonitor frameRefMonitor = new SurfaceTextureHelper.FrameRefMonitor() {
+            int countRepeat = 0;
+            long prevNumCapturedFrames = 0;
             @Override
             public void onNewBuffer(VideoFrame.TextureBuffer textureBuffer) {
 
@@ -181,12 +189,28 @@ public class RTCClient {
 
             @Override
             public void onRetainBuffer(VideoFrame.TextureBuffer textureBuffer) {
-                Log.d("onRetainBuffer", "getNumCapturedFrames: " + String.valueOf(screenCapturer.getNumCapturedFrames()));
+                long currentNumCapturedFrames = screenCapturer.getNumCapturedFrames();
+                if (prevNumCapturedFrames == currentNumCapturedFrames) {
+                    countRepeat ++;
+                } else {
+                    //Log.d("onRetainBuffer", "getNumRepeatFrames: " + String.valueOf(countRepeat));
+                    prevNumCapturedFrames = currentNumCapturedFrames;
+                    countRepeat = 0;
+
+                }
             }
 
             @Override
             public void onReleaseBuffer(VideoFrame.TextureBuffer textureBuffer) {
-                Log.d("onReleaseBuffer", "getNumCapturedFrames: " + String.valueOf(screenCapturer.getNumCapturedFrames()));
+                long currentNumCapturedFrames = screenCapturer.getNumCapturedFrames();
+                if (prevNumCapturedFrames == currentNumCapturedFrames) {
+                    countRepeat ++;
+                } else {
+                    //Log.d("onReleaseBuffer", "getNumRepeatFrames: " + String.valueOf(countRepeat));
+                    prevNumCapturedFrames = currentNumCapturedFrames;
+                    countRepeat = 0;
+
+                }
             }
 
             @Override
@@ -196,18 +220,18 @@ public class RTCClient {
         };
         mSurfaceTextureHelper = SurfaceTextureHelper.create(Thread.currentThread().getName(), rootEglBase.getEglBaseContext(), true, new YuvConverter(), frameRefMonitor);
         videoCapturer.initialize(mSurfaceTextureHelper, context, videoSource.getCapturerObserver());
+        /*
+        videoSource.adaptOutputFormat(
+                new VideoSource.AspectRatio(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT),
+                null,
+                new VideoSource.AspectRatio(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT),
+                null,
+                null);
+
+         */
         videoCapturer.startCapture(PROJECTED_PIXELS_WIDTH, PROJECTED_PIXELS_HEIGHT, FPS);
         localVideoTrack = factory.createVideoTrack(VIDEO_TRACK_ID, videoSource);
         peerConnection.addTrack(localVideoTrack);
-        localVideoTrack.setEnabled(false);
-    }
-
-    public void startStreamingVideo() {
-        //mediaStream = factory.createLocalMediaStream("ARDAMS");
-        //mediaStream.addTrack(localVideoTrack);
-        //peerConnection.addStream(mediaStream);
-        //peerConnection.addTrack(localVideoTrack);
-        Log.d(TAG, "Client media added to stream and started streaming locally");
     }
 
     private PeerConnection createPeerConnection(PeerConnectionFactory factory) {

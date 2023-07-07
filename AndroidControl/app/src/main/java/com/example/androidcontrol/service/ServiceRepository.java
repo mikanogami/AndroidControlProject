@@ -56,7 +56,6 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
         rtcClient.initializePeerConnectionFactory();
         rtcClient.initializePeerConnections();
         rtcClient.createVideoTrackFromScreenCapture();
-        rtcClient.startStreamingVideo();
         rtcClient.createControlDataChannel();
         rtcClient.createScreenOrientationDataChannel();
     }
@@ -124,6 +123,8 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     @Override
     public void onPeerConnected() {
         peerConnectionListener.postPeerConnected();
+        rtcClient.localVideoTrack.setEnabled(true);
+        rtcClient.localVideoTrack.setEnabled(false);
     }
     @Override
     public void sendSdpToSocket(String sdp, int type) {
