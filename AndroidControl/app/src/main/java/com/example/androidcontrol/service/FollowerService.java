@@ -56,7 +56,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
     private static final String TAG = "FollowerService";
     private static WindowManager mWindowManager;
     public BubbleLayoutBinding serviceBubbleBinding;
-    public WindowManager.LayoutParams mBubbleLayoutParams;
+    public WindowManager.LayoutParams mBubbleLayoutParams; 
     public TrashLayoutBinding trashBarBinding;
     public WindowManager.LayoutParams mTrashLayoutParams;
     private final MutableLiveData<String> notifyEndService = new MutableLiveData<String>();
