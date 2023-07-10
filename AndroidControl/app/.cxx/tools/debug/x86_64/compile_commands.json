@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/Users/mikanogami/GitHub/AndroidControlProject/AndroidControl/app/.cxx/Debug/712o3oy1/x86_64",
-  "command": "/Users/mikanogami/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ --target=x86_64-none-linux-android29 --sysroot=/Users/mikanogami/Library/Android/sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/darwin-x86_64/sysroot -Dandroidwebrtc_EXPORTS -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security   -fno-limit-debug-info  -fPIC -o CMakeFiles/androidwebrtc.dir/native-lib.cpp.o -c /Users/mikanogami/GitHub/AndroidControlProject/AndroidControl/app/src/main/cpp/native-lib.cpp",
-  "file": "/Users/mikanogami/GitHub/AndroidControlProject/AndroidControl/app/src/main/cpp/native-lib.cpp"
-}
-]
