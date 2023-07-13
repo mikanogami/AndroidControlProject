@@ -159,7 +159,7 @@ public class RTCClient {
     }
 
     public void createScreenOrientationDataChannel() {
-        Log.d(TAG, "createControlDataChannel: ");
+        Log.d(TAG, "createScreenOrientationDataChannel: ");
         sendScreenOrientationDC = peerConnection.createDataChannel(DC_ORIENTATION_LABEL, new DataChannel.Init());
     }
 

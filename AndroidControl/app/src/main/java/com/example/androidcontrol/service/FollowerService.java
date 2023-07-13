@@ -6,12 +6,9 @@ import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_NOT_RE
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_READY;
 import static com.example.androidcontrol.model.ServiceStateHolder.SERVICE_RUNNING;
 import static com.example.androidcontrol.utils.MyConstants.BUBBLE_ICON_RADIUS;
-import static com.example.androidcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_HEIGHT;
 import static com.example.androidcontrol.utils.MyConstants.M_PROJ_INTENT;
 import static com.example.androidcontrol.utils.MyConstants.NOTIF_CHANNEL_ID;
 import static com.example.androidcontrol.utils.MyConstants.APP_SCREEN_PIXELS_WIDTH;
-import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_HEIGHT;
-import static com.example.androidcontrol.utils.MyConstants.PROJECTED_PIXELS_WIDTH;
 import static com.example.androidcontrol.utils.MyConstants.TRASH_ICON_SIDE_LEN;
 
 import android.app.Notification;
@@ -25,7 +22,6 @@ import android.graphics.drawable.Icon;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -304,7 +300,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
             serviceRepo.rtcClient.localVideoTrack.setEnabled(false);
         }
 
-        serviceRepo.isPaused = false;
+        serviceRepo.controlEnabled = false;
     }
 
     public void onServiceRunning() {
@@ -313,7 +309,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
             serviceRepo.rtcClient.localVideoTrack.setEnabled(true);
         }
 
-        serviceRepo.isPaused = false;
+        serviceRepo.controlEnabled = true;
     }
 
     public void onBubbleClick() {

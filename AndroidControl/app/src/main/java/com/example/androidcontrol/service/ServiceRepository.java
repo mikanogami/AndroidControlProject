@@ -23,13 +23,15 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     private static final String IceSeparatorChar = "|";
     public PeerConnectionListener peerConnectionListener;
     Context context;
+    ControlServiceRepository controlServiceRepo;
     protected SocketClient socketClient;
     public RTCClient rtcClient;
-    public boolean isPaused;
+    public boolean controlEnabled;
 
     public ServiceRepository(Context context) {
         this.context = context;
-        isPaused = false;
+        controlEnabled = false;
+        controlServiceRepo = new ControlServiceRepository(context);
         socketClient = new SocketClient(FOL_CLIENT_KEY);
         rtcClient = new RTCClient(context);
 
@@ -142,13 +144,8 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     @Override
     public void renderControlEvent(byte[] eventBytes) {
-        if (!isPaused) {
-            Intent intent = new Intent(context, ControlService.class);
-            intent.putExtra("event", eventBytes);
-            Log.d("renderControlEvent", String.valueOf(Utils.bytesToFloat(eventBytes)) + " "
-                    + String.valueOf(Utils.bytesToFloat(Arrays.copyOfRange(eventBytes, 4, 8))));
-
-            context.startService(intent);
+        if (controlEnabled) {
+            controlServiceRepo.renderControlEvent(eventBytes);
         }
     }
 
