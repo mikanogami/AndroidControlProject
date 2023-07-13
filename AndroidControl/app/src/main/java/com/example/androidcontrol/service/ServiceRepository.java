@@ -15,6 +15,7 @@ import com.example.androidcontrol.webrtc.SocketClient;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.webrtc.DataChannel;
 
 import java.util.Arrays;
 
@@ -125,6 +126,13 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     @Override
     public void onPeerConnected() {
         peerConnectionListener.postPeerConnected();
+        if (!rtcClient.receiveControlEventsDC.state().equals(DataChannel.State.OPEN)) {
+            rtcClient.createControlDataChannel();
+        }
+        if (!rtcClient.sendScreenOrientationDC.state().equals(DataChannel.State.OPEN)) {
+            rtcClient.createScreenOrientationDataChannel();
+        }
+
         rtcClient.localVideoTrack.setEnabled(true);
         rtcClient.localVideoTrack.setEnabled(false);
     }
@@ -144,7 +152,9 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     @Override
     public void renderControlEvent(byte[] eventBytes) {
+        Log.d(TAG, "tryRenderControlEvent");
         if (controlEnabled) {
+            Log.d(TAG, "enabled");
             controlServiceRepo.renderControlEvent(eventBytes);
         }
     }

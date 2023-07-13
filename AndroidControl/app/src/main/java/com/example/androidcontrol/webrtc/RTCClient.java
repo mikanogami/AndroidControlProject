@@ -57,8 +57,8 @@ public class RTCClient {
     PeerConnectionFactory factory;
     private ScreenCapturerAndroid screenCapturer;
     public VideoTrack localVideoTrack;
-    private DataChannel receiveControlEventsDC;
-    private DataChannel sendScreenOrientationDC;
+    public DataChannel receiveControlEventsDC;
+    public DataChannel sendScreenOrientationDC;
     public static Intent mProjectionIntent;
     SurfaceTextureHelper mSurfaceTextureHelper;
 
@@ -148,11 +148,14 @@ public class RTCClient {
     public void createControlDataChannel() {
         Log.d(TAG, "createControlDataChannel: ");
         receiveControlEventsDC = peerConnection.createDataChannel(DC_CONTROL_LABEL, new DataChannel.Init());
+
+        Log.d("DataChannelState", String.valueOf(receiveControlEventsDC.state()));
+
         receiveControlEventsDC.registerObserver(new DataChannel.Observer() {
             @Override
             public void onBufferedAmountChange(long l) { }
             @Override
-            public void onStateChange() { }
+            public void onStateChange() {  }
             @Override
             public void onMessage(DataChannel.Buffer buffer) { receiveMessageFromChannel(buffer.data); }
         });
@@ -172,6 +175,7 @@ public class RTCClient {
     }
 
     public void receiveMessageFromChannel(ByteBuffer msgByteBuffer) {
+        Log.d(TAG, "receiveMessageFromChannel");
         byte[] message = Utils.byteBufferToBytes(msgByteBuffer);
         rtcListener.renderControlEvent(message);
     }
@@ -300,25 +304,6 @@ public class RTCClient {
             @Override
             public void onDataChannel(DataChannel dataChannel) {
                 Log.d(TAG, "onDataChannel: ");
-                receiveControlEventsDC = dataChannel;
-                if (receiveControlEventsDC != null) {
-                    receiveControlEventsDC.registerObserver(new DataChannel.Observer() {
-                        @Override
-                        public void onBufferedAmountChange(long l) {
-
-                        }
-
-                        @Override
-                        public void onStateChange() {
-                            Log.d(TAG, "onStateChange: remote data channel state: " + dataChannel.state().toString());
-                        }
-
-                        @Override
-                        public void onMessage(DataChannel.Buffer buffer) {
-                            Log.d(TAG, "expert-side onMessage: " + buffer.data);
-                        }
-                    });
-                }
             }
 
             @Override

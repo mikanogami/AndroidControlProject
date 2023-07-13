@@ -310,6 +310,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         }
 
         serviceRepo.controlEnabled = true;
+        Log.d("DataChannelState", String.valueOf(serviceRepo.rtcClient.receiveControlEventsDC.state()));
     }
 
     public void onBubbleClick() {

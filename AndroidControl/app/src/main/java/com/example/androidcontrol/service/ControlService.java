@@ -11,7 +11,6 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.app.Service;
 import android.content.Intent;
-import android.gesture.Gesture;
 import android.graphics.Path;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
@@ -23,10 +22,11 @@ public class ControlService extends AccessibilityService {
     private static final String TAG = "ControlService";
     public static final float setSigFigs = 1000.f;
     public static final int numBytesPerVal = 2;
-    public static final int DX_THRESHOLD = 20;
-    public static final int DY_THRESHOLD = 20;
-    int currentStrokeX;
-    int currentStrokeY;
+    public static final int DX_THRESHOLD = 50;
+    public static final int DY_THRESHOLD = 50;
+    public static final float DURATION_THRESHOLD = 500;
+    float prevStrokeX;
+    float prevStrokeY;
     long currentStrokeDuration;
     GestureDescription.StrokeDescription currentGesture;
     GestureDescription.Builder gestureBuilder;
@@ -52,42 +52,67 @@ public class ControlService extends AccessibilityService {
         Log.d(TAG, "control service started");
 
         byte[] eventBytes = intent.getByteArrayExtra(EVENT_BYTES_TAG);
-        //boolean isContinued = intent.getBooleanExtra(IS_CONTINUED_TAG, false);
-        //boolean willContinue = intent.getBooleanExtra(WILL_CONTINUE_TAG, false);
-        boolean isContinued = false;
-        boolean willContinue = false;
+        boolean isContinued = intent.getBooleanExtra(IS_CONTINUED_TAG, false);
+        boolean willContinue = intent.getBooleanExtra(WILL_CONTINUE_TAG, false);
+
         long duration = twoBytesToInt(Arrays.copyOfRange(eventBytes, 4 * numBytesPerVal, 5 * numBytesPerVal));
         if (duration <= 0) {
             duration = 1;
         }
 
-        Path path = bytesToGesturePath(eventBytes);
+        float[] eventCoords = bytesToScreenCoords(eventBytes);
+        float currentX = eventCoords[2];
+        float currentY = eventCoords[3];
 
-        if (!isContinued) {
+        if (!isContinued | gestureBuilder == null) {
+            // create new gesture
             gestureBuilder = new GestureDescription.Builder();
+            prevStrokeX = currentX;
+            prevStrokeY = currentY;
+            GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
+                    buildStrokePath(currentX, currentY), 0, duration);
+            gestureBuilder.addStroke(gesture);
         }
+
+        //currentStrokeDuration += duration;
 
         if (!willContinue) {
-
+            GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
+                    buildStrokePath(currentX, currentY), 0, duration);
+            gestureBuilder.addStroke(gesture);
+            dispatchGesture();
         } else {
-
+            if (isEventOutsideBounds(currentX, currentY)) {
+                GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
+                        buildStrokePath(currentX, currentY), 0, duration);
+                gestureBuilder.addStroke(gesture);
+            }
         }
 
-
-
-
-
-
-        GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(path, 0, duration, willContinue);
-        gestureBuilder.addStroke(gesture);
-
-        GestureDescription myGesture = gestureBuilder.build();
-        Log.d(TAG, "myGestureDuration: " + duration);
-        dispatchGesture();
-        gestureBuilder = null;
-
+        GestureDescription gestureDescription = gestureBuilder.build();
+        if (gestureDescription.getStrokeCount() >= gestureDescription.getMaxStrokeCount() - 1) {
+            GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
+                    buildStrokePath(currentX, currentY), 0, duration);
+            gestureBuilder.addStroke(gesture);
+            dispatchGesture();
+            gestureBuilder = null;
+        }
 
         return Service.START_NOT_STICKY;
+    }
+
+    private Path buildStrokePath(float x, float y) {
+        Path path = new Path();
+        path.moveTo(prevStrokeX, prevStrokeY);
+        path.lineTo(x, y);
+
+        prevStrokeX = x;
+        prevStrokeY = y;
+        return path;
+    }
+
+    private boolean isEventOutsideBounds(float x, float y) {
+        return Math.abs(prevStrokeX - x) > DX_THRESHOLD | Math.abs(prevStrokeY - y) > DY_THRESHOLD;
     }
 
     private void dispatchGesture() {
