@@ -9,7 +9,7 @@ public abstract class MyConstants {
     public static final String PEER_UNAVAILABLE = "***Peer unavailable";
     //public static final String SERVER_URL = "ws://10.0.0.77:8001/";         // Rogers-5G-FWA
     //public static final String SERVER_URL = "ws://128.189.204.182:8001/";   // ubcsecure
-    public static final String SERVER_URL = "wss://mirthus.herokuapp.com";
+    public static final String SERVER_URL = "wss://mirthus.herokuapp.com/";
 
     // Video track properties
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
