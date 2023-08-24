@@ -21,6 +21,9 @@ Image descriptions from left to right:
 * Toggle ControlService ON and allow service to have full control of device
 You should only need to set permissions in device settings when the app is first installed.
 
+On other Android versions it may look slightly different. For example:
+![Enable Permissions Older Android](/imgs/3_screen_share_permissions.png) <br>
+
 ![Enable Screen Sharing](/imgs/3_screen_share_permissions.png) <br>
 Image descriptions from left to right:
 * White Main Button signifies that all required permissions from the settings have been granted
