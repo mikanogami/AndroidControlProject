@@ -22,7 +22,7 @@ Image descriptions from left to right:
 You should only need to set permissions in device settings when the app is first installed.
 
 On other Android versions it may look slightly different. For example:
-![Enable Permissions Older Android](/imgs/3_screen_share_permissions.png) <br>
+![Enable Permissions Older Android](/imgs/3_screen_share_permissions2.png) <br>
 
 ![Enable Screen Sharing](/imgs/3_screen_share_permissions.png) <br>
 Image descriptions from left to right:
