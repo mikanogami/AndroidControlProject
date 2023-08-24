@@ -126,10 +126,10 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
     @Override
     public void onPeerConnected() {
         peerConnectionListener.postPeerConnected();
-        if (!rtcClient.receiveControlEventsDC.state().equals(DataChannel.State.OPEN)) {
+        if (rtcClient.receiveControlEventsDC == null) {
             rtcClient.createControlDataChannel();
         }
-        if (!rtcClient.sendScreenOrientationDC.state().equals(DataChannel.State.OPEN)) {
+        if (rtcClient.sendScreenOrientationDC == null) {
             rtcClient.createScreenOrientationDataChannel();
         }
 
@@ -152,7 +152,7 @@ public class ServiceRepository implements SocketClient.SocketListener, RTCClient
 
     @Override
     public void renderControlEvent(byte[] eventBytes) {
-        Log.d(TAG, "tryRenderControlEvent");
+        Log.d(TAG, "tryRenderControlEvent: " + controlEnabled);
         if (controlEnabled) {
             Log.d(TAG, "enabled");
             controlServiceRepo.renderControlEvent(eventBytes);

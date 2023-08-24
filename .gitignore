@@ -72,5 +72,3 @@ lint/tmp/
 # App Specific cases 
 app/release/output.json
 .idea/codeStyles/
-# Additional project folders and files
-/AppInstructions/

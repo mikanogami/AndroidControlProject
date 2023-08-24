@@ -155,7 +155,7 @@ public class RTCClient {
             @Override
             public void onBufferedAmountChange(long l) { }
             @Override
-            public void onStateChange() {  }
+            public void onStateChange() { Log.d("DataChannelState", String.valueOf(receiveControlEventsDC.state()));  }
             @Override
             public void onMessage(DataChannel.Buffer buffer) { receiveMessageFromChannel(buffer.data); }
         });
