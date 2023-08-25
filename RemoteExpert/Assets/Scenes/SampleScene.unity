@@ -199,7 +199,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: e1d47b77afdd1b14284c2266d9e07008, type: 2}
+  - {fileID: 2100000, guid: b765d8c39d2ee9744967139342353f81, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -680,9 +680,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PeerConnection: {fileID: 1110962618}
   AutoLogErrors: 1
-  LocalPeerId: ad_exp
-  RemotePeerId: ad_fol
-  WSServerAddress: wss://mirthus.herokuapp.com
+  LocalPeerId: rexpert
+  RemotePeerId: android
+  WSServerAddress: ws://137.82.56.249:8001/
   PollTimeMs: 500
 --- !u!114 &1110962616
 MonoBehaviour:
@@ -1037,7 +1037,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   peerConnectionUnity: {fileID: 1110962618}
-  isSubscriber: 0
   channelName: phoneControl
   cc: {fileID: 1110962625}
   startInd: {fileID: 1781809392}
@@ -1282,7 +1281,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: dfeae5d16e06823408c226fd0cfb22bb, type: 2}
+  - {fileID: 2100000, guid: 65b0330bddf68b54fb780d417feab2c7, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

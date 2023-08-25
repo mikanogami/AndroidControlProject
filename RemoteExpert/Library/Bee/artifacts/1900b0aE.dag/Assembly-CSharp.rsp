@@ -351,9 +351,7 @@
 "Assets/Scripts/PhoneChannel.cs"
 "Assets/Scripts/PhoneRTCManager.cs"
 "Assets/Scripts/PhoneSignaler.cs"
-"Assets/Scripts/RTCDataChannel.cs"
 "Assets/Scripts/Timer.cs"
-"Assets/Scripts/WebSocketSignaler.cs"
 -langversion:9.0
 /unsafe+
 /deterministic

@@ -6,16 +6,16 @@ public class PhoneChannel : MonoBehaviour
 {
 
     private DataChannel channel;
+    public Microsoft.MixedReality.WebRTC.Unity.PeerConnection peerConnectionUnity;
+    
     private Task<DataChannel> makeChannelTask;
     private bool waitingForChannel;
     private bool hasChannel;
     private bool channelOpen;
     private bool isMessageReceived;
-    public Microsoft.MixedReality.WebRTC.Unity.PeerConnection peerConnectionUnity;
-    public bool isSubscriber = false;
     private bool isInitiator = false;
+    
     public string channelName;
-    private int count = 1;
 
     public ClickCapture cc;
     public GameObject startInd;
@@ -51,31 +51,12 @@ public class PhoneChannel : MonoBehaviour
             }
         }
 
-
         //React to incoming messages
         if (isMessageReceived)
         {
+            // Don't do anything rn. Not really expecting messages
             isMessageReceived = false;
         }
-    }
-
-    public void OnGestureCallback(Vector2 startPos, Vector2 endPos, float duration, bool willContinue)
-    {
-        Debug.Log("Start: " + startPos.x.ToString("N") + ", " + startPos.y.ToString("N"));
-        Debug.Log("End: " + endPos.x.ToString("N") + ", " + endPos.y.ToString("N"));
-        Debug.Log("Duration: " + duration.ToString("N"));
-
-        Vector3 p = startInd.transform.position;
-        p.x = startPos.x * transform.localScale.x + transform.position.x - transform.localScale.x / 2;
-        p.y = startPos.y * transform.localScale.y + transform.position.y - transform.localScale.y / 2;
-        startInd.transform.position = p;
-
-        Vector3 v = endInd.transform.position;
-        v.x = endPos.x * transform.localScale.x + transform.position.x - transform.localScale.x / 2;
-        v.y = endPos.y * transform.localScale.y + transform.position.y - transform.localScale.y / 2;
-        endInd.transform.position = v;
-
-        SendMessage(startPos, endPos, duration, willContinue);
     }
 
     public void InitChannel(bool init)
@@ -84,23 +65,14 @@ public class PhoneChannel : MonoBehaviour
         peerConnectionUnity.Peer.DataChannelAdded += OnDataChannelAdded;
         peerConnectionUnity.Peer.DataChannelRemoved += OnDataChannelRemoved;
 
-        if (isInitiator)
+        if (init)
         {
             // Messages should be ordered (i.e. message that is sent first is received first, regardless of if that causes delays)
-            // Messages are not reliable, meaning they are not resent or anything if they are dropped (UDP vs TCP?)
-            makeChannelTask = peerConnectionUnity.Peer.AddDataChannelAsync(channelName, true, false);
+            // Messages are reliable, meaning they are resent if they are dropped (more tcp than udp)
+            makeChannelTask = peerConnectionUnity.Peer.AddDataChannelAsync(channelName, true, true);
             waitingForChannel = true;
             Debug.Log("Creating Data Channel: " + channelName);
         }
-    }
-
-    private byte[] Float2Bytes(float val)
-    {
-        int num = (int)(val * 1000);
-        byte[] b = new byte[2];
-        b[0] = (byte)((num & 0xFF00) >> 8);
-        b[1] = (byte)(num & 0x00FF);
-        return b;
     }
 
     public void SendMessage(Vector2 start, Vector2 end, float duration, bool willContinue)
@@ -132,6 +104,37 @@ public class PhoneChannel : MonoBehaviour
     }
 
     #region Callbacks
+    public void OnGestureCallback(Vector2 startPos, Vector2 endPos, float duration, bool willContinue)
+    {
+        Debug.Log("Start: " + startPos.x.ToString("N") + ", " + startPos.y.ToString("N"));
+        Debug.Log("End: " + endPos.x.ToString("N") + ", " + endPos.y.ToString("N"));
+        Debug.Log("Duration: " + duration.ToString("N"));
+
+        Vector3 p = startInd.transform.position;
+        Vector3 v = endInd.transform.position;
+
+        //p.x = startPos.x * transform.localScale.x + transform.position.x - transform.localScale.x / 2;
+        //p.y = startPos.y * transform.localScale.y + transform.position.y - transform.localScale.y / 2;
+        //v.x = endPos.x * transform.localScale.x + transform.position.x - transform.localScale.x / 2;
+        //v.y = endPos.y * transform.localScale.y + transform.position.y - transform.localScale.y / 2;
+
+        for (int i = 0; i < 2; i++)
+        {
+            // Set positions of markers for visual feedback
+            p[i] = startPos[i];
+            v[i] = endPos[i];
+
+            // Transform to relative screen coordinates (origin at centre of screen)
+            startPos[i] = (startPos[i] - transform.position[i] + transform.localScale[i] / 2) / transform.localScale[i];
+            endPos[i] = (endPos[i] - transform.position[i] + transform.localScale[i] / 2) / transform.localScale[i];
+        }
+
+        // Set positions of markers for visual feedback
+        startInd.transform.position = p;
+        endInd.transform.position = v;
+
+        SendMessage(startPos, endPos, duration, willContinue);
+    }
     private void OnDataChannelAdded(DataChannel addedChannel)
     {
         if (!isInitiator && addedChannel.Label.Equals(channelName))
@@ -166,29 +169,12 @@ public class PhoneChannel : MonoBehaviour
     #endregion
 
     #region Helper Methods
-
-    private byte[] VectorToBytes(Vector3 v, int count = -1)
+    private byte[] Float2Bytes(float val)
     {
-        byte[] b;
-        if (count < 0)
-            b = new byte[12];
-        else
-        {
-            b = new byte[13];
-            b[12] = (byte)count;
-        }
-
-        int next = 0;
-        for (int i = 0; i < 3; i++)
-        {
-            byte[] vecBytes = System.BitConverter.GetBytes(v[i]);
-            for (int j = 0; j < vecBytes.Length; j++)
-            {
-                b[next] = vecBytes[j];
-                next++;
-            }
-        }
-
+        int num = (int)(val * 1000);
+        byte[] b = new byte[2];
+        b[0] = (byte)((num & 0xFF00) >> 8);
+        b[1] = (byte)(num & 0x00FF);
         return b;
     }
     #endregion

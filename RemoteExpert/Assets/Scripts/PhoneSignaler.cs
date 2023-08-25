@@ -39,7 +39,7 @@ namespace Microsoft.MixedReality.WebRTC.Unity
         /// </summary>
         [Header("Server")]
         [Tooltip("The WebSocket server to connect to")]
-        public string WSServerAddress = "ws://127.0.0.1:8765/";
+        public string WSServerAddress = "ws://127.0.0.1:8001/";
 
         /// <summary>
         /// The interval (in ms) that the server is polled at
@@ -48,10 +48,8 @@ namespace Microsoft.MixedReality.WebRTC.Unity
         public float PollTimeMs = 500f;
 
         private WebSocket ws;
-        [System.NonSerialized] public bool isOpen = false;
-        private bool peerDisconnected = true;
+        [NonSerialized] public bool isOpen = false;
         private Queue messages;
-        private readonly string cryptKey = "WWLib2p3498hALKS)()*&JBASao8945823472034}{:><?>@#$%@#&$%@skfjVLFPQPN47734";
         private bool keepClosed = false;
         private bool sendPing = false;
 
@@ -253,7 +251,7 @@ namespace Microsoft.MixedReality.WebRTC.Unity
 
             ws.OnOpen += (sender, e) =>
             {
-                ws.Send(System.Text.Encoding.UTF8.GetBytes("WAK4k5SthTsWrAxp49U4yfybjpjZ7XRu" + LocalPeerId));
+                ws.Send(System.Text.Encoding.UTF8.GetBytes("AWefkbasflaLWIKWBE28357al>??AVLSIsdgauugwei37" + LocalPeerId));
                 isOpen = true;
                 Debug.Log("WebSocket signaling connection opened");
             };
@@ -297,9 +295,12 @@ namespace Microsoft.MixedReality.WebRTC.Unity
             }
 
             // Encode data in JSON
-            string encryptedMsg = JsonUtility.ToJson(message);//System.Text.Encoding.UTF8.GetString(Encrypter.DumbEncrypt(JsonUtility.ToJson(message)));
+            string encryptedMsg = JsonUtility.ToJson(message);
+
+            // Should encrypt/decrypt these messages
             //string encryptedMsg = Encrypter.SimpleEncryptWithPassword(unencryptedMsg, cryptKey);
             //var data = System.Text.Encoding.UTF8.GetBytes(encryptedMsg);
+
             var data = System.Text.Encoding.UTF8.GetBytes(encryptedMsg);
 
             // Set up function for websocket to call when its done
@@ -371,10 +372,9 @@ namespace Microsoft.MixedReality.WebRTC.Unity
                 Debug.Log("Phone left signaling server");
                 return;
             }
-            //string decryptedMsg = Encrypter.SimpleDecryptWithPassword(encryptedMsg, cryptKey);
+            
+            // Should encrypt these messages
             string decryptedMsg = encryptedMsg;// Encrypter.DumbDecrypt(e.RawData);
-            //Debug.Log(decryptedMsg);
-            Debug.Log(decryptedMsg);
             var msg = JsonUtility.FromJson<WebSocketMessage>(decryptedMsg);
 
             if (msg != null)
@@ -391,7 +391,6 @@ namespace Microsoft.MixedReality.WebRTC.Unity
         {
             // depending on what type of message we get, we'll handle it differently
             // this is the "glue" that allows two peers to establish a connection.
-            //DebugLogLong($"Received SDP message: type={msg.MessageType} data={msg.Data}");
             Debug.Log("Establishing communication with Follower");
             switch (msg.MessageType)
             {

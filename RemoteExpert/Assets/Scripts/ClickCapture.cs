@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ClickCapture : MonoBehaviour
@@ -9,7 +7,7 @@ public class ClickCapture : MonoBehaviour
 
     private bool wasDown = false;
     private long tStart;
-    private Vector2 pStart;
+    private Vector2 pStart = Vector2.zero;
     private Vector2[] screenCorners;
 
     // Start is called before the first frame update
@@ -101,9 +99,10 @@ public class ClickCapture : MonoBehaviour
                     }
                 }
             }
-            // Make start and finish positions relative to screen size, centred at the screen centre
-            pStart = new Vector2((pStart.x - transform.position.x + transform.localScale.x / 2) / transform.localScale.x, (pStart.y - transform.position.y + transform.localScale.y / 2) / transform.localScale.y);
-            pEnd = new Vector2((pEnd.x - transform.position.x + transform.localScale.x / 2) / transform.localScale.x, (pEnd.y - transform.position.y + transform.localScale.y / 2) / transform.localScale.y);
+            // Make start and finish positions relative to screen size, origin at the screen centre
+            //pStart = new Vector2((pStart.x - transform.position.x + transform.localScale.x / 2) / transform.localScale.x, (pStart.y - transform.position.y + transform.localScale.y / 2) / transform.localScale.y);
+            //pEnd = new Vector2((pEnd.x - transform.position.x + transform.localScale.x / 2) / transform.localScale.x, (pEnd.y - transform.position.y + transform.localScale.y / 2) / transform.localScale.y);
+            
             callback(pStart, pEnd, (tEnd - tStart) / 1000.0f, isContinuing);
         }
     }
