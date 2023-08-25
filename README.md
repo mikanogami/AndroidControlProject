@@ -43,6 +43,14 @@ Image descriptions from left to right:
 * Android Accessibility Service: The ControlService element. Allows us to dispatch simple gestures such as clicks and drags from remote device to local device.
 * Foreground Service: most app functionality works within the foreground service. It allows us to run code even outside of the app.
 
+### Running the project
+To test/use the Android application, a sample Unity project is available in the RemoteExpert directory. 
+This gives an idea of how to set up the expert side to remotely stream and control the Android.
+To connect the two sides, a signaling server is required, as is standard in WebRTC. We have implemented a very simple server in Python using WebSockets which is available in the signaling directory.
+You can either run the system locally for testing by calling "python signaling/signalServerLocal.py", or you can use the system remotely over the internet for example using Heroku and the files in signaling/heroku.
+Note, there is no proper authentication or encryption of the signaling messages so you should probably add that. 
+To change the address of the signaling server, change it in MyConstants.java (app/src/main/java/com/example/androidcontrol/utils) and in the phoneSignaler component of the Unity project, and potentially in signalServerLocal.py. 
+
 ### Usage Suggestions
 Primarily tested on an Android 13 device (API level 33). Should be compatible with devices that are API levels 29-33.
 <br><br>
