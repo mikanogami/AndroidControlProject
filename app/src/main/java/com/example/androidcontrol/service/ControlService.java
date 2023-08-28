@@ -27,10 +27,12 @@ public class ControlService extends AccessibilityService {
     public static final float DURATION_THRESHOLD = 500;
     float prevStrokeX;
     float prevStrokeY;
-    long currentStrokeDuration;
+    boolean isContinued = false;
+    long maxStrokeDuration = GestureDescription.getMaxGestureDuration() / (GestureDescription.getMaxGestureDuration() + 1);
+    long currentStrokeDuration = 0;
     GestureDescription.StrokeDescription currentGesture;
     GestureDescription.Builder gestureBuilder;
-
+    GestureDescription gestureConstraints;
     @Override
     public void onCreate() {
         Log.d("onCreate",  "service created");
@@ -52,67 +54,68 @@ public class ControlService extends AccessibilityService {
         Log.d(TAG, "control service started");
 
         byte[] eventBytes = intent.getByteArrayExtra(EVENT_BYTES_TAG);
-        boolean isContinued = intent.getBooleanExtra(IS_CONTINUED_TAG, false);
         boolean willContinue = intent.getBooleanExtra(WILL_CONTINUE_TAG, false);
 
         long duration = twoBytesToInt(Arrays.copyOfRange(eventBytes, 4 * numBytesPerVal, 5 * numBytesPerVal));
         if (duration <= 0) {
             duration = 1;
         }
-
+        currentStrokeDuration = duration;
         float[] eventCoords = bytesToScreenCoords(eventBytes);
-        float currentX = eventCoords[2];
-        float currentY = eventCoords[3];
-
-        if (!isContinued | gestureBuilder == null) {
-            // create new gesture
+        float x1 = eventCoords[0];
+        float y1 = eventCoords[1];
+        float x2 = eventCoords[2];
+        float y2 = eventCoords[3];
+        //float currentX = eventCoords[2];
+        //float currentY = eventCoords[3];
+        gestureBuilder = new GestureDescription.Builder();
+        addStrokeToGesture(x1, y1, x2, y2);
+        dispatchGesture();
+        /*
+        if (!isContinued) {
             gestureBuilder = new GestureDescription.Builder();
+            isContinued = true;
             prevStrokeX = currentX;
             prevStrokeY = currentY;
-            GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
-                    buildStrokePath(currentX, currentY), 0, duration);
-            gestureBuilder.addStroke(gesture);
-        }
-
-        //currentStrokeDuration += duration;
-
-        if (!willContinue) {
-            GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
-                    buildStrokePath(currentX, currentY), 0, duration);
-            gestureBuilder.addStroke(gesture);
-            dispatchGesture();
+            if (!willContinue) {
+                addStrokeToGesture(eventCoords[0], eventCoords[1], currentX, currentY);
+                dispatchGesture();
+            } else {
+                addStrokeToGesture(prevStrokeX, prevStrokeY, currentX, currentY);
+            }
         } else {
-            if (isEventOutsideBounds(currentX, currentY)) {
-                GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
-                        buildStrokePath(currentX, currentY), 0, duration);
-                gestureBuilder.addStroke(gesture);
+            gestureConstraints = gestureBuilder.build();
+            if (gestureConstraints.getStrokeCount() >= gestureConstraints.getMaxStrokeCount() - 1) {
+                addStrokeToGesture(prevStrokeX, prevStrokeY, currentX, currentY);
+                dispatchGesture();
+            }
+
+            if (!willContinue) {
+                addStrokeToGesture(prevStrokeX, prevStrokeY, currentX, currentY);
+                dispatchGesture();
+            } else {
+                if (isEventOutsideBounds(currentX, currentY)) {
+                    addStrokeToGesture(prevStrokeX, prevStrokeY, currentX, currentY);
+                }
             }
         }
 
-        GestureDescription gestureDescription = gestureBuilder.build();
-        if (gestureDescription.getStrokeCount() >= gestureDescription.getMaxStrokeCount() - 1) {
-            GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
-                    buildStrokePath(currentX, currentY), 0, duration);
-            gestureBuilder.addStroke(gesture);
-            dispatchGesture();
-            gestureBuilder = null;
-        }
 
+         */
         return Service.START_NOT_STICKY;
     }
 
-    private Path buildStrokePath(float x, float y) {
+    private void addStrokeToGesture(float prevX, float prevY, float x, float y) {
         Path path = new Path();
-        path.moveTo(prevStrokeX, prevStrokeY);
+        path.moveTo(prevX, prevY);
         path.lineTo(x, y);
-
         prevStrokeX = x;
         prevStrokeY = y;
-        return path;
-    }
 
-    private boolean isEventOutsideBounds(float x, float y) {
-        return Math.abs(prevStrokeX - x) > DX_THRESHOLD | Math.abs(prevStrokeY - y) > DY_THRESHOLD;
+        GestureDescription.StrokeDescription gesture = new GestureDescription.StrokeDescription(
+                path, 0, 1);
+        gestureBuilder.addStroke(gesture);
+        currentStrokeDuration = 0;
     }
 
     private void dispatchGesture() {
@@ -122,7 +125,6 @@ public class ControlService extends AccessibilityService {
                 super.onCompleted(gestureDescription);
                 Log.d("dispatchGesture onCompleted", String.valueOf(gestureDescription));
             }
-
             @Override
             public void onCancelled(GestureDescription gestureDescription) {
                 super.onCancelled(gestureDescription);
@@ -130,26 +132,7 @@ public class ControlService extends AccessibilityService {
             }
         }, null);
         Log.d(TAG, "Gesture dispatched, result=" + result);
-    }
-
-    public static Path bytesToGesturePath(byte[] bytes) {
-
-        float[] mappedCoords = new float[4];
-        float normVal;
-        for(int i = 0; i < 4; i++) {
-            normVal = twoBytesToInt(Arrays.copyOfRange(bytes, numBytesPerVal * i, numBytesPerVal * (i+1))) / setSigFigs;
-
-            // x-coords are at even indices (0 and 2), y-coords are at odd indices (1 and 3)
-            if(i % 2 == 0)  { mappedCoords[i] = APP_SCREEN_PIXELS_WIDTH * normVal; }
-            else            { mappedCoords[i] = FULL_SCREEN_PIXELS_HEIGHT * (1 - normVal); }
-        }
-
-        Log.d("bytesToStrokeDescription", mappedCoords[0] + " " + mappedCoords[1]);
-        Path clickPath = new Path();
-        clickPath.moveTo(mappedCoords[0], mappedCoords[1]);
-        clickPath.lineTo(mappedCoords[2], mappedCoords[3]);
-
-        return clickPath;
+        isContinued = false;
     }
 
     public static float[] bytesToScreenCoords(byte[] bytes) {
